@@ -1,0 +1,261 @@
+@import url("https://fonts.cdnfonts.com/css/amazon-ember");
+
+/* Icon Buttons */
+.ENG2ASL_Icon-Btn {
+  width: 1vw;
+  height: 1vw;
+  display: flex;
+  padding: 0.625rem 1rem;
+  justify-content: center;
+  align-items: center;
+  gap: 5px;
+  margin: auto;
+  text-align: center;
+}
+
+.ENG2ASL_Icon-Btn-Img {
+  width: 3vw;
+  height: 3vw;
+}
+
+.ENG2ASL_Icon-Btn-Tooltip {
+  font-size: 1vw;
+  font-family: "Amazon Ember", sans-serif;
+}
+
+/* Tables */
+table.ENG2ASL_Container {
+  width: 100%;
+}
+
+table.ENG2ASL_Container th{
+  text-align: center;
+  vertical-align: middle;
+  padding: 5px;
+  width: 25%;
+}
+
+table.ENG2ASL_Container td{
+  text-align: center;
+  vertical-align: middle;
+  padding: 5px;
+}
+
+table.ENG2ASL_Section {
+  width: 100%;
+  height: 100%;
+}
+
+table.ENG2ASL_Section th{
+  text-align: center;
+  vertical-align: middle;
+  border-color: rgb(14, 94, 34);
+  border-style: groove;
+  border-width: medium;
+  border-radius: 16px;
+  background-color: darkslateblue;
+  color: white;
+  font-size: 1.2vw;
+  font-family: "Amazon Ember", sans-serif;
+  margin: 10;
+  margin-bottom: 10;
+}
+
+
+table.ENG2ASL_Section td{
+  text-align: center;
+  vertical-align: middle;
+  background-color: white;
+  padding: 5px;
+  border-radius: 16px;
+}
+
+table.ENG2ASL_InputSection {
+  width: 100%;
+  height: 100%;
+}
+
+table.ENG2ASL_InputSection th{
+  text-align: center;
+  vertical-align: middle;
+  border-color: rebeccapurple;
+  border-style: groove;
+  border-width: medium;
+  border-radius: 16px;
+  background-color: rebeccapurple;
+  color: white;
+  font-size: 1.2vw;
+  font-family: "Amazon Ember", sans-serif;
+  margin: 10;
+  margin-bottom: 10;
+  line-height: 0.25vw;
+}
+
+
+table.ENG2ASL_InputSection td{
+  text-align: center;
+  vertical-align: middle;
+  background-color: white;
+  padding: 5px;
+  border-radius: 16px;
+}
+
+
+table.ENG2ASL_GlossSection {
+  width: 100%;
+  height: 100%;
+}
+
+table.ENG2ASL_GlossSection th{
+  text-align: center;
+  vertical-align: middle;
+  border-color: rebeccapurple;
+  border-style: groove;
+  border-width: medium;
+  border-radius: 16px;
+  background-color: rebeccapurple;
+  color: white;
+  font-size: 1.2vw;
+  font-family: "Amazon Ember", sans-serif;
+  margin: 10;
+  margin-bottom: 10;
+}
+
+table.ENG2ASL_GlossSection td{
+  text-align: center;
+  vertical-align: middle;
+  background-color: white;
+  padding: 5px;
+  border-radius: 16px;
+}
+
+
+table.ENG2ASL_VideoSection {
+  width: 100%;
+  height: 100%;
+}
+
+table.ENG2ASL_VideoSection th{
+  text-align: center;
+  vertical-align: middle;
+  border-color: rebeccapurple;
+  border-style: groove;
+  border-width: medium;
+  border-radius: 20px;
+  background-color: rebeccapurple;
+  color: white;
+  font-size: 1.2vw;
+  font-family: "Amazon Ember", sans-serif;
+  margin: 20;
+  margin-bottom: 10;
+}
+
+table.ENG2ASL_VideoSection td{
+  text-align: center;
+  vertical-align: middle;
+  background-color: white;
+  padding: 5px;
+  border-radius: 16px;
+}
+
+table.ENG2ASL_ButtonGroup {
+  width: 100%;
+  height: 100%;
+}
+
+table.ENG2ASL_ButtonGroup th{
+  text-align: center;
+  vertical-align: middle;
+  color: white;
+  font-size: 1.2vw;
+  font-family: "Amazon Ember", sans-serif;
+  margin: 20;
+  margin-bottom: 10;
+  border-radius: 16px;
+}
+
+/* Div */
+div.ENG2ASL_Panel {
+  width: 100%;
+  height: 18vw;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0px 0px 24px 2px rgba(1, 149, 247, 0.1);
+  opacity: 0.75;
+  justify-content: center;
+}
+
+div.ENG2ASL_InputPanel {
+  width: 20vw;
+  height: 40vw;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0px 0px 24px 2px rgba(1, 149, 247, 0.1);
+  opacity: 0.75;
+  justify-content: center;
+}
+
+div.ENG2ASL_VideoPanel {
+  width: 100%;
+  height: 20vw;
+  border-radius: 20px;
+  background: #fff;
+  box-shadow: 0px 0px 24px 2px rgba(1, 149, 247, 0.1);
+  opacity: 0.75;
+  justify-content: center;
+}
+
+div.ENG2ASL_GlossPanel {
+  width: 100%;
+  height: 20vw;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0px 0px 24px 2px rgba(1, 149, 247, 0.1);
+  opacity: 0.75;
+  justify-content: center;
+}
+
+div.ENG2ASL_3DAvatarPanel {
+  width: 100%;
+  height: 30vw;
+  border-radius: 16px;
+  background: #fff;
+  box-shadow: 0px 0px 24px 2px rgba(1, 149, 247, 0.1);
+  opacity: 0.75;
+  justify-content: center;
+}
+
+
+/* TextArea */
+textarea.ENG2ASL_TextInput {
+  width: 100%;
+  height: 100%;
+  font-size: 1.5vw;
+  font-family: "Amazon Ember", sans-serif;
+  box-sizing: border-box;
+  padding: 5;
+}
+
+/* Letter Count */
+p.ENG2ASL_TextInputCount {
+  font-size: 1vw;
+  color: var(--neutral-80, darkslateblue);
+  font-family: "Amazon Ember", sans-serif;
+}
+
+/* Video */
+.ENG2ASL_Video-Box {
+  background-color: #ffffff;
+  margin-left: auto;
+  margin-right: auto;
+  height: 15vw;
+  width: 20vw;
+}
+
+.ENG2ASL_Avatar-Video-Box {
+  background-color: #ffffff;
+  margin-left: auto;
+  margin-right: auto;
+  height: 20vw;
+  width: 20vw;
+}

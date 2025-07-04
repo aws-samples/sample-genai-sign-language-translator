@@ -1,0 +1,22 @@
+.text-to-speech-converter {
+  max-width: 600px;
+  margin: 0 auto;
+  padding: 20px;
+}
+textarea {
+  width: 100%;
+  margin-bottom: 10px;
+}
+button {
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: white;
+  border: none;
+  cursor: pointer;
+}
+button:disabled {
+  background-color: #cccccc;
+}
+.error {
+  color: red;
+}

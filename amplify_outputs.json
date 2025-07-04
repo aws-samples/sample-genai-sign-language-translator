@@ -1,0 +1,53 @@
+{
+  "auth": {
+    "user_pool_id": "us-west-2_yf99TCpiJ",
+    "aws_region": "us-west-2",
+    "user_pool_client_id": "3dhhvq5ucb4fml82orob91q1fh",
+    "identity_pool_id": "us-west-2:228748f3-ddeb-41c8-991e-44c07affecdf",
+    "mfa_methods": [],
+    "standard_required_attributes": [
+      "email"
+    ],
+    "username_attributes": [
+      "email"
+    ],
+    "user_verification_types": [
+      "email"
+    ],
+    "groups": [],
+    "mfa_configuration": "NONE",
+    "password_policy": {
+      "min_length": 8,
+      "require_lowercase": true,
+      "require_numbers": true,
+      "require_symbols": true,
+      "require_uppercase": true
+    },
+    "unauthenticated_identities_enabled": true
+  },
+  "version": "1.3",
+  "storage": {
+    "aws_region": "us-west-2",
+    "bucket_name": "genasl-data-ssupro"
+  },
+  "custom": {
+    "ENV": {
+      "amplify_env": "ssupro",
+      "region": "us-west-2"
+    },
+    "API": {
+      "GenASLAPIssupro": {
+        "endpoint": "https://xqlyata7f5.execute-api.us-west-2.amazonaws.com/prod/",
+        "region": "us-west-2",
+        "apiName": "GenASLAPIssupro"
+      }
+    },
+    "WSS": {
+      "GenASLWSSssupro": {
+        "endpoint": "wss://v2mx3s1n41.execute-api.us-west-2.amazonaws.com/prod",
+        "region": "us-west-2",
+        "apiName": "GenASLWSSssupro"
+      }
+    }
+  }
+}
