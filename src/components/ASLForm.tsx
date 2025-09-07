@@ -115,7 +115,7 @@ class ASLForm extends Component<ASLFormProps, ASLFormState> {
 
   handleUploadFile = async () => {
     await fetchAuthSession({ forceRefresh: true });
-    const session = await fetchAuthSession();
+    // const session = await fetchAuthSession();
     // console.log("id token", session.tokens.idToken)
     // console.log("access token", session.tokens.accessToken)
 
@@ -383,7 +383,7 @@ class ASLForm extends Component<ASLFormProps, ASLFormState> {
                                       aria-label="upload"
                                       component="span"
                                       // onClick={this.handleUploadFile}
-                                      onClick={() => this.fileInputRef.current.click()}
+                                      onClick={() => this.fileInputRef.current?.click()}
                                   >
                                     <img className="ENG2ASL_Icon-Btn-Img" src={UploadImageName} alt="Upload Button"/>
                                   </IconButton>

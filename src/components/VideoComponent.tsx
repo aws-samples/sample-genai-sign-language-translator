@@ -2,7 +2,6 @@ import React, { useState, useRef, useEffect } from 'react';
 import { uploadData } from 'aws-amplify/storage';
 import { fetchAuthSession } from 'aws-amplify/auth';
 import { KinesisVideo } from '@aws-sdk/client-kinesis-video';
-import { KinesisVideoMedia } from '@aws-sdk/client-kinesis-video-media';
 import {Amplify} from "aws-amplify";
 
 
@@ -16,7 +15,7 @@ const VideoComponent: React.FC = () => {
   const videoRef = useRef<HTMLVideoElement>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const mediaRecorderRef = useRef<MediaRecorder | null>(null);
-  const region = awsconfig.Storage.S3.region; // Provide a default if not set
+  const region = awsconfig.Storage?.S3?.region || 'us-east-1'; // Provide a default if not set
 
   useEffect(() => {
     const setupStream = async () => {
@@ -59,32 +58,25 @@ const VideoComponent: React.FC = () => {
       const { credentials } = await fetchAuthSession();
       if (!credentials) throw new Error('No credentials');
 
-      // const kinesisVideoMedia = new KinesisVideoMedia({
-      //   region: region,
-      //   credentials: credentials,
-      // });
-
       const kinesisVideo = new KinesisVideo({
           region: region,
           credentials: credentials,
         });
 
-
-       const endPoint= await kinesisVideo.getDataEndpoint({
+       const endPointResponse = await kinesisVideo.getDataEndpoint({
           APIName: 'PUT_MEDIA',
           StreamName: streamName,
         });
+
+      console.log('Data endpoint:', endPointResponse.DataEndpoint);
 
       mediaRecorderRef.current = new MediaRecorder(stream, { mimeType: 'video/webm' });
 
       mediaRecorderRef.current.ondataavailable = async (event) => {
         if (event.data.size > 0) {
-          const chunk = await event.data.arrayBuffer();
-          await endPoint.putMedia({
-            StreamName: streamName,
-            Data: new Uint8Array(chunk),
-            ProducerTimestamp: new Date(),
-          });
+          // For now, just log the chunk - actual streaming implementation would require
+          // proper WebRTC or HTTP streaming to the Kinesis Video endpoint
+          console.log('Video chunk received:', event.data.size, 'bytes');
         }
       };
 
@@ -115,8 +107,10 @@ const VideoComponent: React.FC = () => {
         key: `public/videos/${file.name}`,
         data: file,
         options: {
-          onProgress: ({ loaded, total }) => {
-            setUploadProgress(Math.round((loaded / total) * 100));
+          onProgress: (event) => {
+            if (event.transferredBytes && event.totalBytes) {
+              setUploadProgress(Math.round((event.transferredBytes / event.totalBytes) * 100));
+            }
           },
         },
       }).result;
