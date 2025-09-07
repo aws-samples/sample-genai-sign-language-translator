@@ -84,33 +84,34 @@ export class GenASLBackendStack extends Stack {
 
 
 
-        const blendedPoseFunction = new lambda.Function(this, 'BlendedPoseFunction', {
-          code: lambda.Code.fromAssetImage('./amplify/custom/functions/blendedpose', {
-          }),
-            handler: lambda.Handler.FROM_IMAGE,
-            runtime: lambda.Runtime.FROM_IMAGE,
-            architecture: lambda.Architecture.ARM_64,
-            functionName: 'BlendedPoseFunction-' + process.env.AMPLIFY_ENV,
-            description: 'This function creates a blended pose',
-            timeout: Duration.seconds(config.lambdaSettings.timeout),
-            memorySize: config.lambdaSettings.memorySize,
-            environment: {
-            POSE_BUCKET: config.pose_bucket,
-            ASL_DATA_BUCKET: this.dataBucket.bucketName,
-            KEY_PREFIX: config.key_prefix,
-            TABLE_NAME: config.table_name,
-            },
-        });
+        // Temporarily commented out to fix deployment issues - Docker build failing
+        // const blendedPoseFunction = new lambda.Function(this, 'BlendedPoseFunction', {
+        //   code: lambda.Code.fromAssetImage('./amplify/custom/functions/blendedpose', {
+        //   }),
+        //     handler: lambda.Handler.FROM_IMAGE,
+        //     runtime: lambda.Runtime.FROM_IMAGE,
+        //     architecture: lambda.Architecture.ARM_64,
+        //     functionName: 'BlendedPoseFunction-' + process.env.AMPLIFY_ENV,
+        //     description: 'This function creates a blended pose',
+        //     timeout: Duration.seconds(config.lambdaSettings.timeout),
+        //     memorySize: config.lambdaSettings.memorySize,
+        //     environment: {
+        //     POSE_BUCKET: config.pose_bucket,
+        //     ASL_DATA_BUCKET: this.dataBucket.bucketName,
+        //     KEY_PREFIX: config.key_prefix,
+        //     TABLE_NAME: config.table_name,
+        //     },
+        // });
 
-        blendedPoseFunction.addToRolePolicy(new iam.PolicyStatement({
-      effect: iam.Effect.ALLOW,
-      actions: ['dynamodb:GetItem', 'dynamodb:Scan', 'dynamodb:Query'],
-      resources: [this.formatArn({
-        service: 'dynamodb',
-        resource: 'table',
-        resourceName: config.table_name,
-      })],
-    }));
+        // blendedPoseFunction.addToRolePolicy(new iam.PolicyStatement({
+        //   effect: iam.Effect.ALLOW,
+        //   actions: ['dynamodb:GetItem', 'dynamodb:Scan', 'dynamodb:Query'],
+        //   resources: [this.formatArn({
+        //     service: 'dynamodb',
+        //     resource: 'table',
+        //     resourceName: config.table_name,
+        //   })],
+        // }));
 
 
 
@@ -147,11 +148,11 @@ export class GenASLBackendStack extends Stack {
         // Add S3 read permissions for genasl-avatar bucket
     const avatarBucket = s3.Bucket.fromBucketName(this, 'AvatarBucket', config.pose_bucket);
     avatarBucket.grantRead(gloss2PoseFunction);
-    avatarBucket.grantRead(blendedPoseFunction);
+    // avatarBucket.grantRead(blendedPoseFunction); // Commented out - function disabled
 
     // Add S3 full access permissions for genasl-data bucket
     this.dataBucket.grantReadWrite(gloss2PoseFunction);
-    this.dataBucket.grantReadWrite(blendedPoseFunction);
+    // this.dataBucket.grantReadWrite(blendedPoseFunction); // Commented out - function disabled
 
 
         const text2GlossFunction = new lambda.Function(this, 'Text2GlossFunction', {
@@ -322,18 +323,18 @@ export class GenASLBackendStack extends Stack {
             //     level: sfn.LogLevel.ALL }
         });
 
-         // Create the Lambda task
-        const blendedPoseTask = new tasks.LambdaInvoke(this, 'BlendedPose', {
-          lambdaFunction: blendedPoseFunction,
-          outputPath: '$.Payload',
-          retryOnServiceExceptions: true,
-        });
+         // Create the Lambda task - Commented out due to Docker build issues
+        // const blendedPoseTask = new tasks.LambdaInvoke(this, 'BlendedPose', {
+        //   lambdaFunction: blendedPoseFunction,
+        //   outputPath: '$.Payload',
+        //   retryOnServiceExceptions: true,
+        // });
 
-    // Create the state machine
-        const blendedPoseStateMachine = new sfn.StateMachine(this, 'BlendedPoseStateMachine'+process.env.AMPLIFY_ENV, {
-          definition: blendedPoseTask,
-          comment: 'Invoke BlendedPose Lambda in async',
-        });
+    // Create the state machine - Commented out due to Docker build issues
+        // const blendedPoseStateMachine = new sfn.StateMachine(this, 'BlendedPoseStateMachine'+process.env.AMPLIFY_ENV, {
+        //   definition: blendedPoseTask,
+        //   comment: 'Invoke BlendedPose Lambda in async',
+        // });
 
         const audio2SignFunction = new lambda.Function(this, 'Audio2SignFunction', {
           runtime: lambda.Runtime.PYTHON_3_11, // Specify the runtime
@@ -345,7 +346,7 @@ export class GenASLBackendStack extends Stack {
           memorySize: config.lambdaSettings.memorySize,
           environment: {
               STATE_MACHINE_ARN: stateMachine.stateMachineArn,
-              STATE_MACHINE_ARN_BLENDED_POSE: blendedPoseStateMachine.stateMachineArn
+              // STATE_MACHINE_ARN_BLENDED_POSE: blendedPoseStateMachine.stateMachineArn // Commented out - function disabled
           },
       });
 

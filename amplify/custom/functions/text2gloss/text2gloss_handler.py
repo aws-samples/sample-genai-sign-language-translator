@@ -79,7 +79,7 @@ def text_to_asl_gloss(text):
 
 
 if __name__ == "__main__":
-    lambda_handler({"Text": "what is your name"}, {})
+    lambda_handler({"Text": "what is your name?"}, {})
     lambda_handler({"Text": "How are you?"}, {})
     lambda_handler({"Text": "She is watching a movie"}, {})
     lambda_handler({"Text": "He wants to play"}, {})

@@ -1,9 +1,9 @@
 {
   "auth": {
-    "user_pool_id": "us-west-2_yf99TCpiJ",
-    "aws_region": "us-west-2",
-    "user_pool_client_id": "3dhhvq5ucb4fml82orob91q1fh",
-    "identity_pool_id": "us-west-2:228748f3-ddeb-41c8-991e-44c07affecdf",
+    "user_pool_id": "us-east-1_TOFl4RSnb",
+    "aws_region": "us-east-1",
+    "user_pool_client_id": "2tdol7ci87vhgnnjln13l0pnck",
+    "identity_pool_id": "us-east-1:c1579dca-bbb3-4f58-9123-96c6491489e7",
     "mfa_methods": [],
     "standard_required_attributes": [
       "email"
@@ -27,26 +27,26 @@
   },
   "version": "1.3",
   "storage": {
-    "aws_region": "us-west-2",
-    "bucket_name": "genasl-data-ssupro"
+    "aws_region": "us-east-1",
+    "bucket_name": "genasl-data-ssurpo"
   },
   "custom": {
     "ENV": {
-      "amplify_env": "ssupro",
-      "region": "us-west-2"
+      "amplify_env": "ssurpo",
+      "region": "us-east-1"
     },
     "API": {
-      "GenASLAPIssupro": {
-        "endpoint": "https://xqlyata7f5.execute-api.us-west-2.amazonaws.com/prod/",
-        "region": "us-west-2",
-        "apiName": "GenASLAPIssupro"
+      "GenASLAPIssurpo": {
+        "endpoint": "https://o6gtytpamk.execute-api.us-east-1.amazonaws.com/prod/",
+        "region": "us-east-1",
+        "apiName": "GenASLAPIssurpo"
       }
     },
     "WSS": {
-      "GenASLWSSssupro": {
-        "endpoint": "wss://v2mx3s1n41.execute-api.us-west-2.amazonaws.com/prod",
-        "region": "us-west-2",
-        "apiName": "GenASLWSSssupro"
+      "GenASLWSSssurpo": {
+        "endpoint": "wss://qn9x3xce8e.execute-api.us-east-1.amazonaws.com/prod",
+        "region": "us-east-1",
+        "apiName": "GenASLWSSssurpo"
       }
     }
   }
