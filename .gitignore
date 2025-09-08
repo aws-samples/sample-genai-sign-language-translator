@@ -1,0 +1,4 @@
+node_modules
+dist
+.amplify
+amplify_outputs.json

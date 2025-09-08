@@ -1,0 +1,209 @@
+/* Added 10/29/24 */
+
+/* Icon Buttons */
+.ASL2ENG_Icon-Btn {
+    width: 1vw;
+    height: 1vw;
+    display: flex;
+    padding: 0.625rem 1rem;
+    justify-content: center;
+    align-items: center;
+    gap: 5px;
+    margin: auto;
+    text-align: center;
+  }
+  
+  .ASL2ENG_Icon-Btn-Img {
+    width: 3vw;
+    height: 3vw;
+  }
+  
+  .ASL2ENG_Icon-Btn-Tooltip {
+    font-size: 1vw;
+    font-family: "Amazon Ember", sans-serif;
+  }
+  
+  /* Tables */
+  table.ASL2ENG_Container {
+    width: 100%;
+  }
+
+  table.ASL2ENG_Container th{
+    width: 50%;
+  }
+  
+  table.ASL2ENG_Container td{
+    text-align: center;
+    vertical-align: middle;
+    padding: 5px;
+  }
+    
+  table.ASL2ENG_InputSection {
+    width: 100%;
+    height: 100%;
+  }
+  
+  table.ASL2ENG_InputSection th{
+    text-align: center;
+    vertical-align: middle;
+    border-radius: 20px;
+    background-color: rebeccapurple;
+    color: white;
+    font-size: 1.2vw;
+    font-family: "Amazon Ember", sans-serif;
+    margin: 10;
+    margin-bottom: 10;
+  }
+  
+  
+  table.ASL2ENG_InputSection td{
+    text-align: center;
+    vertical-align: middle;
+    background-color: white;
+    padding: 5px;
+    border-radius: 16px;
+  }
+  
+  table.ASL2ENG_OutputSection {
+    width: 100%;
+    height: 100%;
+  }
+  
+  table.ASL2ENG_OutputSection th{
+    text-align: center;
+    vertical-align: middle;
+    border-radius: 20px;
+    background-color: rebeccapurple;
+    color: white;
+    font-size: 1.2vw;
+    font-family: "Amazon Ember", sans-serif;
+    margin: 10;
+    margin-bottom: 10;
+  }
+  
+  
+  table.ASL2ENG_OutputSection td{
+    text-align: center;
+    vertical-align: middle;
+    background-color: white;
+    padding: 5px;
+    border-radius: 16px;
+  }
+  
+  
+  table.ASL2ENG_VideoSection {
+    width: 100%;
+    height: 100%;
+  }
+  
+  table.ASL2ENG_VideoSection th{
+    text-align: center;
+    vertical-align: middle;
+    border-color: darkblue;
+    border-style: groove;
+    border-width: medium;
+    border-radius: 20px;
+    background-color: darkblue;
+    color: white;
+    font-size: 1.2vw;
+    font-family: "Amazon Ember", sans-serif;
+    margin: 20;
+    margin-bottom: 10;
+  }
+  
+  table.ASL2ENG_VideoSection td{
+    text-align: center;
+    vertical-align: middle;
+    background-color: white;
+    padding: 5px;
+    border-radius: 16px;
+  }
+  
+  table.ASL2ENG_ButtonGroup {
+    width: 100%;
+    height: 100%;
+  }
+  
+  table.ASL2ENG_ButtonGroup th{
+    text-align: center;
+    vertical-align: middle;
+    color: white;
+    font-size: 1.2vw;
+    font-family: "Amazon Ember", sans-serif;
+    margin: 20;
+    margin-bottom: 10;
+    border-radius: 16px;
+  }
+  
+  table.ASL2ENG_ButtonGroup td{
+    text-align: center;
+    vertical-align: middle;
+    color: white;
+    font-size: 1.2vw;
+    font-family: "Amazon Ember", sans-serif;
+    margin: 20;
+    margin-bottom: 10;
+    border-radius: 16px;
+    height: 5vw;
+  }
+
+  /* Div */
+  div.ASL2ENG_InputPanel {
+    width: 100%;
+    height: 40vw;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0px 0px 24px 2px rgba(1, 149, 247, 0.1);
+    opacity: 0.75;
+    justify-content: center;
+  }
+  
+  div.ASL2ENG_OutputPanel {
+    width: 100%;
+    height: 40vw;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0px 0px 24px 2px rgba(1, 149, 247, 0.1);
+    opacity: 0.75;
+    justify-content: center;
+  }
+
+  div.ASL2ENG_TextPanel {
+    width: 100%;
+    height: 20vw;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0px 0px 24px 2px rgba(1, 149, 247, 0.1);
+    opacity: 0.75;
+    justify-content: center;
+  }
+
+  div.ASL2ENG_VideoPanel {
+    width: 100%;
+    height: 20vw;
+    border-radius: 20px;
+    background: #fff;
+    box-shadow: 0px 0px 24px 2px rgba(1, 149, 247, 0.1);
+    opacity: 0.75;
+    justify-content: center;
+  }
+  
+  
+  /* TextArea */
+  textarea.ASL2ENG_TextOutput {
+    width: 100%;
+    height: 100%;
+    font-size: 1.5vw;
+    font-family: "Amazon Ember", sans-serif;
+    box-sizing: border-box;
+    padding: 0.5;
+  }
+   
+  /* Video */
+  .ASL2ENG_Video-Box {
+    background-color: #ffffff;
+    margin-left: auto;
+    margin-right: auto;
+    height: 30vw;
+    width: 30vw;
+  }
