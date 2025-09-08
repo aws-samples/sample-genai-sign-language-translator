@@ -37,8 +37,8 @@ Follow the instructions in the video
 Now clone the GenASL translator repo and install the required dependencies 
 
 ```
-git clone https://github.com/<github-user>/genai-sl-translator.git
-cd genai-sl-translator && npm install --legacy-peer-deps
+git clone https://github.com/<github-user>/sample-genai-sign-language-translator.git
+cd sample-genai-sign-language-translator && npm install --legacy-peer-deps
 ```
 
 ##### 2.2.1. Download amplify_outputs.json 
