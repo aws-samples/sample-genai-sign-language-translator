@@ -297,8 +297,9 @@ def analyze_asl_image(image_path):
             messages=conversation,
             inferenceConfig=inferenceConfig,
         )
-        print(response["output"]["message"]["content"][0]["text"])
-        return response["output"]["message"]["content"][0]["text"]
+        eng_text= response["output"]["message"]["content"][0]["text"]
+        eng_text=eng_text.replace("The ASL sign shown in the video is","")
+        return eng_text
     except Exception as e:
         print(f"An error occurred: {e}")
         return None
