@@ -37,8 +37,8 @@ Create a `.env.local` file in the zoom directory:
 
 ```bash
 # Zoom Configuration
-REACT_APP_ZOOM_API_KEY=stygQZB9RY6NhaKoziB77w
-REACT_APP_ZOOM_API_SECRET=HIRxcxQtIeWjTYUEN2DXmpKpzuqne88N
+REACT_APP_ZOOM_API_KEY=your_zoom_api_key_here
+REACT_APP_ZOOM_API_SECRET=your_zoom_api_secret_here
 REACT_APP_ZOOM_WEB_ENDPOINT=https://localhost:3001
 
 # GenASL API Configuration
