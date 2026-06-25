@@ -8,3 +8,4 @@ alexa_outputs.json
 .idea
 .env.local
 .env*.local
+.vscode/
