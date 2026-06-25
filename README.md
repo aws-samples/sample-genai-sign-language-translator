@@ -41,6 +41,17 @@ git clone https://github.com/aws-samples/sample-genai-sign-language-translator.g
 cd sample-genai-sign-language-translator && npm install --legacy-peer-deps
 ```
 
+##### 2.2.3. Build the FFmpeg Lambda Layer
+The FFmpeg binary is not stored in the repository. It is downloaded at build time via a script with SHA256 integrity verification. To build it locally:
+
+```bash
+bash amplify/custom/functions/layers/ffmpeg/build-layer.sh
+```
+
+This downloads a pinned static build of FFmpeg (v7.0.2, ~76MB) for the Lambda layer. The binary is gitignored and will also be built automatically during `cdk synth` via Docker bundling if not already present.
+
+> **Note:** FFmpeg is licensed under GPL-3. If you redistribute this application, ensure you comply with GPL-3 attribution and source availability requirements.
+
 ##### 2.2.1. Download amplify_outputs.json 
 Now let's set up our local development environment to add features to the frontend. Click on your deployed branch and you will land on the Deployments page which shows you your build history and a list of deployed backend resources.
 ![](https://docs.amplify.aws/images/gen2/getting-started/react/branch-details.mp4)
