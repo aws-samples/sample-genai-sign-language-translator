@@ -75,12 +75,19 @@ export class GenASLBackendStack extends Stack {
               ],
         });
 
-       // Define the FFmpeg Layer
+       // Define the FFmpeg Layer — binary is downloaded at build time via build-layer.sh
         const ffmpegLayer = new lambda.LayerVersion(this, 'FFmpegLayer', {
-          code: lambda.Code.fromAsset('./amplify/custom/functions/layers/ffmpeg'),
+          code: lambda.Code.fromAsset('./amplify/custom/functions/layers/ffmpeg', {
+            bundling: {
+              image: cdk.DockerImage.fromRegistry('public.ecr.aws/sam/build-python3.11:latest'),
+              command: [
+                'bash', '-c',
+                'bash /asset-input/build-layer.sh && cp -r /asset-input/bin /asset-output/bin',
+              ],
+            },
+          }),
           compatibleRuntimes: [lambda.Runtime.PYTHON_3_11],
           description: 'FFmpeg layer for video processing',
-
         });
 
 

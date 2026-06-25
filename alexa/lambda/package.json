@@ -1,0 +1,14 @@
+{
+  "name": "hello-world-skill",
+  "version": "1.0.0",
+  "description": "Alexa Hello World Skill with S3 video support",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "dependencies": {
+    "ask-sdk-core": "^2.7.0",
+    "ask-sdk-model": "^1.19.0",
+    "aws-sdk": "^2.1000.0"
+  }
+}
