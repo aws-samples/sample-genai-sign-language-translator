@@ -2,3 +2,9 @@ node_modules
 dist
 .amplify
 amplify_outputs.json
+alexa_outputs.json
+.DS_Store
+**/__pycache__
+.idea
+.env.local
+.env*.local
