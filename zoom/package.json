@@ -28,7 +28,7 @@
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
     "react-router-dom": "^6.26.2",
-    "axios": "^1.7.7",
+    "axios": "^1.16.0",
     "socket.io-client": "^4.7.5",
     "styled-components": "^6.1.13",
     "@emotion/react": "^11.13.3",
