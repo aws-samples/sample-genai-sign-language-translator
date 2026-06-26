@@ -1,0 +1,109 @@
+{
+  "_comment": "Removed conflicting ShowVideoIntent v3",
+  "interactionModel": {
+    "languageModel": {
+      "invocationName": "asl translator",
+      "intents": [
+        {
+          "name": "AMAZON.CancelIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.HelpIntent",
+          "samples": []
+        },
+        {
+          "name": "AMAZON.StopIntent",
+          "samples": [
+            "bye",
+            "goodbye"
+          ]
+        },
+        {
+          "name": "AppleIntent",
+          "samples": [
+            "how are you",
+            "how are you doing",
+            "good afternoon how are you",
+            "good afternoon how are you doing",
+            "good afternoon"
+          ]
+        },
+        {
+          "name": "HelloWorldIntent",
+          "slots": [],
+          "samples": [
+            "asl",
+            "asl Translator",
+            "american Sign language"
+          ]
+        },
+        {
+          "name": "WebcamIntent",
+          "samples": [
+            "i am fine thanks how are you",
+            "i am fine thanks",
+            "i am fine",
+            "thanks"
+          ]
+        },
+        {
+          "name": "HelpResponseIntent",
+          "slots": [],
+          "samples": [
+            "how may help you today",
+            "may help you",
+            "help",
+            "how may help",
+            "today"
+          ]
+        },
+        {
+          "name": "ColorsIntent",
+          "slots": [],
+          "samples": [
+            "can you teach me signs for colors",
+            "can you teach me signs",
+            "colors",
+            "signs"
+          ]
+        },
+        {
+          "name": "BlueColorIntent",
+          "slots": [],
+          "samples": [
+            "yes let practice the sign for blue",
+            "practice sign blue",
+            "blue",
+            "practice"
+          ]
+        },
+        {
+          "name": "NumbersIntent",
+          "slots": [],
+          "samples": [
+            "can you teach me numbers one to five",
+            "can you teach me numbers",
+            "numbers"
+          ]
+        },
+        {
+          "name": "TranslateIntent",
+          "slots": [
+            {
+              "name": "phrase",
+              "type": "AMAZON.SearchQuery"
+            }
+          ],
+          "samples": [
+            "translate {phrase}",
+            "show me {phrase}",
+            "sign for {phrase}",
+            "{phrase}"
+          ]
+        }
+      ],
+      "types": []
+    }
+  }
+}
