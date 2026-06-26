@@ -1,4 +1,4 @@
-'''Template for a Python3 project on AWS.'''
+'''WebSocket handler for GenASL with Strands agent integration'''
 import json
 import boto3
 import sys
@@ -12,20 +12,34 @@ import io
 import time
 from datetime import datetime
 from botocore.exceptions import ClientError
+from pathlib import Path
 
 BUCKET_NAME = os.environ['INPUT_BUCKET']
 ASL_TO_ENG_MODEL = os.environ['ASL_TO_ENG_MODEL']
 ASL_TO_ENG_MODEL = "us.meta.llama3-2-11b-instruct-v1:0"
 
-# Initialize Bedrock client
+# AgentCore configuration
+AGENTCORE_AGENT_ID = os.environ.get('AGENTCORE_AGENT_ID')
+AGENTCORE_AGENT_ARN = os.environ.get('AGENTCORE_AGENT_ARN')
+AGENTCORE_REGION = os.environ.get('AGENTCORE_REGION', 'us-west-2')
+
+# Initialize Bedrock clients
 bedrock_runtime = boto3.client('bedrock-runtime', region_name='us-east-1')
+bedrock_agentcore = boto3.client('bedrock-agentcore-runtime', region_name=AGENTCORE_REGION)
+
+AGENT_AVAILABLE = bool(AGENTCORE_AGENT_ID and AGENTCORE_AGENT_ARN)
+if AGENT_AVAILABLE:
+    print(f"AgentCore agent available: {AGENTCORE_AGENT_ID}")
+else:
+    print("AgentCore agent not configured")
 
 
 def default(event, context):
-    """Default handler for websocket messages"""
+    """Default handler for websocket messages with Strands agent integration"""
     print(event)
     message = event.get('body', '')
     print(BUCKET_NAME)
+    
     if not message.strip():
         return {
             'statusCode': 200,
@@ -43,33 +57,21 @@ def default(event, context):
     # Save the message to dynamodb
     aws.save_message(connection_id, request_time, message, channel_name)
 
-    # Parse the string to a dictionary
-    data = json.loads(message)
-    stream_name = data.get('StreamName', '')
-    print(stream_name)
-    if stream_name:
-        output_path = '/tmp/'
-        asl_input_file = process_kvs_to_webp(stream_name, output_path)
-        print(asl_input_file)
-        message = analyze_asl_image(asl_input_file)
-    else:
-        bucket_name = data.get('BucketName', '')
-        key_name = data.get('KeyName', '')
-        input_file = download_from_s3(bucket_name, key_name)
-        file_name_without_ext, ext = os.path.splitext(os.path.basename(input_file))
-        output_path = '/tmp/' + file_name_without_ext + '.webp'
-        asl_input_file = convert_mp4_to_webp(input_file, output_path)
-        message = analyze_asl_image(asl_input_file)
-        # else:
-        #     print("Error in converting mp4 to webp");
-        #     message = "Error in converting mp4 to webp"
-    #res = convert_mp4_to_webp(input_path, output_path)
-    #print(res)
-    #response = analyze_asl_image(output_path)
-    #print(response)
+    try:
+        # Parse the message to determine processing type
+        data = json.loads(message)
+        response_message = process_websocket_message_with_agent(data, connection_id, event)
+        
+    except json.JSONDecodeError:
+        # Handle plain text messages
+        response_message = process_text_message_with_agent(message, connection_id, event)
+    except Exception as e:
+        print(f"Error processing WebSocket message: {e}")
+        response_message = f"Error processing your request: {str(e)}"
+
     # broadcast the message to all connected users
     _broadcast(
-        message,
+        response_message,
         _get_endpoint(event),
         connection_id,
         channel_name,
@@ -78,8 +80,232 @@ def default(event, context):
 
     return {
         'statusCode': 200,
-        'body': safe_dumps(message),
+        'body': safe_dumps(response_message),
     }
+
+def process_websocket_message_with_agent(data, connection_id, event):
+    """Process structured WebSocket message using AgentCore agent"""
+    
+    if not AGENT_AVAILABLE:
+        # Fallback to legacy processing
+        return process_legacy_websocket_message(data)
+    
+    try:
+        print(f"=== WEBSOCKET MESSAGE RECEIVED ===")
+        print(f"Raw data: {json.dumps(data, indent=2)}")
+        print(f"Data keys: {list(data.keys())}")
+        
+        # Build agent input based on message content
+        stream_name = data.get('StreamName', '')
+        bucket_name = data.get('BucketName', '')
+        key_name = data.get('KeyName', '')
+        text_content = data.get('text', data.get('message', ''))
+        
+        print(f"Extracted text_content: '{text_content}'")
+        
+        # Construct the input message for the agent
+        if stream_name:
+            input_text = f"Analyze ASL video from Kinesis stream: {stream_name}"
+            input_data = {"StreamName": stream_name, "type": "video"}
+        elif bucket_name and key_name:
+            if key_name.lower().endswith(('.mp4', '.webm', '.avi', '.mov')):
+                input_text = f"Analyze ASL video from S3: {bucket_name}/{key_name}"
+                input_data = {"BucketName": bucket_name, "KeyName": key_name, "type": "video"}
+            else:
+                input_text = f"Process audio file from S3: {bucket_name}/{key_name}"
+                input_data = {"BucketName": bucket_name, "KeyName": key_name, "type": "audio"}
+        elif text_content:
+            input_text = text_content
+            input_data = {"type": "text"}
+        else:
+            input_text = "Hello, how can I help you with ASL translation?"
+            input_data = {"type": "text"}
+        
+        print(f"Invoking AgentCore agent {AGENTCORE_AGENT_ID} with input: {input_text}")
+        print(f"Input data: {json.dumps(input_data)}")
+        
+        # Invoke the AgentCore agent via HTTP
+        # AgentCore agents are invoked through their runtime endpoint
+        payload = {
+            "prompt": input_text,
+            "message": input_text,
+            **input_data
+        }
+        
+        print(f"Agent payload: {json.dumps(payload)}")
+        
+        response = bedrock_agentcore.invoke_agent(
+            agentId=AGENTCORE_AGENT_ID,
+            sessionId=connection_id,
+            inputText=json.dumps(payload)  # Send the full payload as JSON
+        )
+        
+        # Process the streaming response
+        agent_response = process_agentcore_response(response)
+        
+        # Format response for WebSocket
+        return format_websocket_agent_response(agent_response, data)
+        
+    except Exception as e:
+        print(f"Error invoking AgentCore agent for WebSocket: {e}")
+        import traceback
+        traceback.print_exc()
+        return f"I encountered an error processing your request: {str(e)}"
+
+def process_text_message_with_agent(message, connection_id, event):
+    """Process plain text WebSocket message using AgentCore agent"""
+    
+    if not AGENT_AVAILABLE:
+        return f"Echo: {message}"
+    
+    try:
+        print(f"Processing text message with AgentCore agent: {message}")
+        
+        # Invoke the AgentCore agent
+        response = bedrock_agentcore.invoke_agent(
+            agentId=AGENTCORE_AGENT_ID,
+            sessionId=connection_id,
+            inputText=message
+        )
+        
+        # Process the streaming response
+        agent_response = process_agentcore_response(response)
+        
+        return agent_response
+        
+    except Exception as e:
+        print(f"Error processing text message with AgentCore agent: {e}")
+        import traceback
+        traceback.print_exc()
+        return f"I encountered an error: {str(e)}"
+
+def process_agentcore_response(response):
+    """Process AgentCore streaming response and extract the result"""
+    try:
+        # AgentCore returns a streaming response
+        event_stream = response.get('completion', [])
+        
+        result_text = ""
+        result_data = {}
+        
+        for event in event_stream:
+            if 'chunk' in event:
+                chunk = event['chunk']
+                if 'bytes' in chunk:
+                    # Decode the bytes to text
+                    chunk_text = chunk['bytes'].decode('utf-8')
+                    result_text += chunk_text
+            elif 'trace' in event:
+                # Handle trace events for debugging
+                trace = event['trace']
+                print(f"Agent trace: {trace}")
+            elif 'returnControl' in event:
+                # Handle return control events
+                return_control = event['returnControl']
+                print(f"Agent return control: {return_control}")
+                result_data = return_control
+        
+        # Try to parse as JSON if possible
+        try:
+            parsed_result = json.loads(result_text)
+            return parsed_result
+        except json.JSONDecodeError:
+            # Return as plain text if not JSON
+            return result_text if result_text else result_data
+            
+    except Exception as e:
+        print(f"Error processing AgentCore response: {e}")
+        import traceback
+        traceback.print_exc()
+        return f"Error processing agent response: {str(e)}"
+
+def format_websocket_agent_response(agent_response, original_data):
+    """Format agent response for WebSocket broadcast using enhanced formatter"""
+    try:
+        # Try to use the enhanced response formatter
+        try:
+            from response_formatters import format_websocket_response
+            
+            connection_id = "websocket_connection"  # Default connection ID
+            formatted_response = format_websocket_response(
+                agent_response=agent_response,
+                original_message=original_data,
+                connection_id=connection_id,
+                include_debug=os.environ.get('DEBUG_MODE', 'false').lower() == 'true'
+            )
+            
+            # Return the formatted message for broadcasting
+            return formatted_response.get('message', str(agent_response))
+            
+        except ImportError:
+            print("Response formatter not available, using fallback formatting")
+            return format_websocket_response_fallback(agent_response, original_data)
+        
+    except Exception as e:
+        print(f"Error using enhanced formatter: {e}, falling back to basic formatting")
+        return format_websocket_response_fallback(agent_response, original_data)
+
+def format_websocket_response_fallback(agent_response, original_data):
+    """Fallback WebSocket response formatting"""
+    try:
+        # For WebSocket, we want to return user-friendly messages
+        if isinstance(agent_response, str):
+            return agent_response
+        
+        # If it's structured data, format it nicely
+        if isinstance(agent_response, dict):
+            formatted_parts = []
+            
+            if 'message' in agent_response:
+                formatted_parts.append(agent_response['message'])
+            
+            if 'Gloss' in agent_response:
+                formatted_parts.append(f"ASL Gloss: {agent_response['Gloss']}")
+            
+            if any(key.endswith('URL') for key in agent_response.keys()):
+                formatted_parts.append("Generated ASL videos:")
+                for key, value in agent_response.items():
+                    if key.endswith('URL') and value:
+                        video_type = key.replace('URL', '').lower()
+                        formatted_parts.append(f"• {video_type.title()}: {value}")
+            
+            return "\n".join(formatted_parts) if formatted_parts else str(agent_response)
+        
+        return str(agent_response)
+        
+    except Exception as e:
+        print(f"Error formatting WebSocket agent response: {e}")
+        return str(agent_response)
+
+def process_legacy_websocket_message(data):
+    """Legacy WebSocket message processing (fallback when agent is not available)"""
+    stream_name = data.get('StreamName', '')
+    
+    if stream_name:
+        try:
+            output_path = '/tmp/'
+            asl_input_file = process_kvs_to_webp(stream_name, output_path)
+            print(asl_input_file)
+            return analyze_asl_image(asl_input_file)
+        except Exception as e:
+            print(f"Error processing stream: {e}")
+            return f"Error processing video stream: {str(e)}"
+    else:
+        bucket_name = data.get('BucketName', '')
+        key_name = data.get('KeyName', '')
+        
+        if bucket_name and key_name:
+            try:
+                input_file = download_from_s3(bucket_name, key_name)
+                file_name_without_ext, ext = os.path.splitext(os.path.basename(input_file))
+                output_path = '/tmp/' + file_name_without_ext + '.webp'
+                asl_input_file = convert_mp4_to_webp(input_file, output_path)
+                return analyze_asl_image(asl_input_file)
+            except Exception as e:
+                print(f"Error processing S3 file: {e}")
+                return f"Error processing file: {str(e)}"
+        else:
+            return "Please provide either StreamName or BucketName/KeyName for processing."
 
 
 def handle_cmd(event, context):

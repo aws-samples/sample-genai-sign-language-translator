@@ -9,3 +9,6 @@ alexa_outputs.json
 .env.local
 .env*.local
 .vscode/
+
+# FFmpeg layer binary (GPL-3, ~79 MB) is pulled at build time, not committed.
+amplify/custom/functions/layers/ffmpeg/bin/ffmpeg

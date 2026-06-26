@@ -1,0 +1,52 @@
+default_agent: conversational_asl_agent
+agents:
+  conversational_asl_agent:
+    name: conversational_asl_agent
+    entrypoint: conversational_asl_agent/conversational_asl_agent_main.py
+    platform: linux/arm64
+    container_runtime: docker
+    aws:
+      execution_role: arn:aws:iam::853513360253:role/AmazonBedrockAgentCoreSDKRuntime-us-west-2-ae8ba35af8
+      execution_role_auto_create: false
+      account: '853513360253'
+      region: us-west-2
+      ecr_repository: 853513360253.dkr.ecr.us-west-2.amazonaws.com/bedrock-agentcore-conversational-asl-agent
+      ecr_auto_create: false
+      network_configuration:
+        network_mode: PUBLIC
+      protocol_configuration:
+        server_protocol: HTTP
+      observability:
+        enabled: true
+        log_level: INFO
+      environment_variables:
+        ENG_TO_ASL_MODEL: "us.amazon.nova-lite-v1:0"
+        ASL_TO_ENG_MODEL: "us.amazon.nova-lite-v1:0"
+        POSE_BUCKET: "genasl-avatar"
+        ASL_DATA_BUCKET: "genasl-data"
+        KEY_PREFIX: "aslavatarv2/gloss2pose/lookup/"
+        TABLE_NAME: "Pose_Data6"
+        AWS_REGION: "us-west-2"
+        MAX_TOKENS: "3000"
+        TEMPERATURE: "0.0"
+        # Conversational agent specific configuration
+        CONVERSATION_MEMORY_TTL: "3600"
+        CONVERSATION_HISTORY_LIMIT: "50"
+        CONVERSATION_CONTEXT_CLEANUP_INTERVAL: "300"
+        CONVERSATION_ENABLE_PROACTIVE_TIPS: "true"
+        CONVERSATION_ENABLE_CONTEXT_ANALYSIS: "true"
+        CONVERSATION_RESPONSE_ENHANCEMENT: "true"
+        AGENTCORE_MEMORY_OPTIMIZATION: "true"
+        AGENTCORE_MEMORY_COMPRESSION: "true"
+        AGENTCORE_MEMORY_BATCH_SIZE: "10"
+    bedrock_agentcore:
+      agent_id: conversational-asl-agent-4BncgN2p1h
+      agent_arn: arn:aws:bedrock-agentcore:us-west-2:853513360253:runtime/conversational-asl-agent-4BncgN2p1h
+      agent_session_id: 73098b2a-4d2c-4130-a015-308142e85ee7
+    codebuild:
+      project_name: bedrock-agentcore-conversational-asl-agent-builder
+      execution_role: arn:aws:iam::853513360253:role/AmazonBedrockAgentCoreSDKCodeBuild-us-west-2-ae8ba35af8
+      source_bucket: bedrock-agentcore-codebuild-sources-853513360253-us-west-2
+    authorizer_configuration: null
+    oauth_configuration:
+      workload_name: workload-d3b4a731

@@ -1,0 +1,41 @@
+default_agent: slagent
+agents:
+  slagent:
+    name: slagent
+    entrypoint: signlanguageagent/slagent.py
+    platform: linux/arm64
+    container_runtime: docker
+    aws:
+      execution_role: arn:aws:iam::853513360253:role/AmazonBedrockAgentCoreSDKRuntime-us-west-2-ae8ba35af8
+      execution_role_auto_create: false
+      account: '853513360253'
+      region: us-west-2
+      ecr_repository: 853513360253.dkr.ecr.us-west-2.amazonaws.com/bedrock-agentcore-slagent
+      ecr_auto_create: false
+      network_configuration:
+        network_mode: PUBLIC
+      protocol_configuration:
+        server_protocol: HTTP
+      observability:
+        enabled: true
+        log_level: INFO
+      environment_variables:
+        ENG_TO_ASL_MODEL: "us.amazon.nova-lite-v1:0"
+        POSE_BUCKET: "genasl-avatar"
+        ASL_DATA_BUCKET: "genasl-data"
+        KEY_PREFIX: "aslavatarv2/gloss2pose/lookup/"
+        TABLE_NAME: "Pose_Data6"
+        AWS_REGION: "us-west-2"
+        MAX_TOKENS: "3000"
+        TEMPERATURE: "0.0"
+    bedrock_agentcore:
+      agent_id: slagent-4BncgN2p1h
+      agent_arn: arn:aws:bedrock-agentcore:us-west-2:853513360253:runtime/slagent-4BncgN2p1h
+      agent_session_id: 73098b2a-4d2c-4130-a015-308142e85ee7
+    codebuild:
+      project_name: bedrock-agentcore-slagent-builder
+      execution_role: arn:aws:iam::853513360253:role/AmazonBedrockAgentCoreSDKCodeBuild-us-west-2-ae8ba35af8
+      source_bucket: bedrock-agentcore-codebuild-sources-853513360253-us-west-2
+    authorizer_configuration: null
+    oauth_configuration:
+      workload_name: workload-d3b4a731
