@@ -20,7 +20,7 @@
     "@mui/material": "^6.1.2",
     "@types/ini": "^4.1.1",
     "aws-amplify": "^6.8.0",
-    "axios": "^1.8.2",
+    "axios": "^1.16.0",
     "ini": "^5.0.0",
     "react": "^18.2.0",
     "react-dom": "^18.2.0",
@@ -37,18 +37,20 @@
     "@typescript-eslint/parser": "^7.2.0",
     "@vitejs/plugin-react": "^4.2.1",
     "aws-cdk": "^2.138.0",
-    "aws-cdk-lib": "^2.138.0",
+    "aws-cdk-lib": "^2.246.0",
     "constructs": "^10.3.0",
-    "esbuild": "^0.20.2",
+    "esbuild": "^0.28.1",
     "eslint": "^8.57.0",
     "eslint-plugin-react-hooks": "^4.6.0",
     "eslint-plugin-react-refresh": "^0.4.6",
     "tsx": "^4.7.2",
     "typescript": "^5.4.5",
-    "vite": "^5.2.0"
+    "vite": "^6.4.3"
   },
   "overrides": {
     "@babel/runtime": "^7.26.10",
-    "nanoid": "^3.3.8"
+    "nanoid": "^3.3.8",
+    "js-yaml": "^4.1.1",
+    "lodash-es": "4.17.23"
   }
 }

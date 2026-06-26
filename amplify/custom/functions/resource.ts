@@ -15,27 +15,6 @@ import * as ddb from 'aws-cdk-lib/aws-dynamodb';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import {S3} from "aws-cdk-lib/aws-ses-actions";
 import {Bucket} from "aws-cdk-lib/aws-s3";
-import { execFileSync } from 'child_process';
-import * as fs from 'fs';
-import * as path from 'path';
-
-const FFMPEG_LAYER_DIR = './amplify/custom/functions/layers/ffmpeg';
-
-/**
- * Ensures the GPL-3 FFmpeg binary is present before the layer asset is packaged.
- * The binary is not committed to the repository (see .gitignore); it is pulled
- * at build time via download_ffmpeg.sh. This runs during CDK synth so it works
- * for both `npx ampx sandbox` and `npx ampx pipeline-deploy`.
- */
-function ensureFfmpegBinary(): void {
-    const binPath = path.join(FFMPEG_LAYER_DIR, 'bin', 'ffmpeg');
-    if (fs.existsSync(binPath)) {
-        return;
-    }
-    const script = path.join(FFMPEG_LAYER_DIR, 'download_ffmpeg.sh');
-    console.log(`FFmpeg binary not found at ${binPath}; running ${script} ...`);
-    execFileSync('bash', [script], { stdio: 'inherit' });
-}
 
 interface GenASLConfig {
     lambdaSettings: {
@@ -97,14 +76,19 @@ export class GenASLBackendStack extends Stack {
               ],
         });
 
-       // Define the FFmpeg Layer
-        // The GPL-3 binary is fetched at build time (not committed); see download_ffmpeg.sh
-        ensureFfmpegBinary();
+       // Define the FFmpeg Layer — binary is downloaded at build time via build-layer.sh
         const ffmpegLayer = new lambda.LayerVersion(this, 'FFmpegLayer', {
-          code: lambda.Code.fromAsset(FFMPEG_LAYER_DIR),
+          code: lambda.Code.fromAsset('./amplify/custom/functions/layers/ffmpeg', {
+            bundling: {
+              image: cdk.DockerImage.fromRegistry('public.ecr.aws/sam/build-python3.11:latest'),
+              command: [
+                'bash', '-c',
+                'bash /asset-input/build-layer.sh && cp -r /asset-input/bin /asset-output/bin',
+              ],
+            },
+          }),
           compatibleRuntimes: [lambda.Runtime.PYTHON_3_11],
           description: 'FFmpeg layer for video processing',
-
         });
 
 

@@ -1,2 +1,0 @@
-# Keeps the bin/ directory in version control. The ffmpeg binary itself
-# is pulled at build time (see ../download_ffmpeg.sh) and is gitignored.

@@ -1,0 +1,63 @@
+{
+  "name": "genasl-zoom-app",
+  "version": "1.0.0",
+  "description": "GenASL Zoom Integration - AI-powered Sign Language Translation for Zoom Meetings",
+  "main": "index.js",
+  "scripts": {
+    "dev": "vite",
+    "build": "tsc && vite build",
+    "preview": "vite preview",
+    "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "type-check": "tsc --noEmit"
+  },
+  "keywords": [
+    "zoom",
+    "sign-language",
+    "asl",
+    "accessibility",
+    "ai",
+    "translation",
+    "meetings"
+  ],
+  "author": "GenASL Team",
+  "license": "MIT",
+  "dependencies": {
+    "@zoom/meetingsdk": "^3.8.10",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-router-dom": "^7.18.0",
+    "axios": "^1.16.0",
+    "socket.io-client": "^4.7.5",
+    "styled-components": "^6.4.3",
+    "@emotion/react": "^11.13.3",
+    "@emotion/styled": "^11.13.0",
+    "@mui/material": "^6.1.2",
+    "@mui/icons-material": "^6.1.2",
+    "react-uuid": "^2.0.0",
+    "lodash": "^4.18.1",
+    "date-fns": "^3.6.0",
+    "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "@types/react": "^18.2.66",
+    "@types/react-dom": "^18.2.22",
+    "@types/lodash": "^4.17.7",
+    "@types/jest": "^29.5.12",
+    "@typescript-eslint/eslint-plugin": "^7.2.0",
+    "@typescript-eslint/parser": "^7.2.0",
+    "@vitejs/plugin-react": "^6.0.3",
+    "eslint": "^8.57.0",
+    "eslint-plugin-react-hooks": "^4.6.0",
+    "eslint-plugin-react-refresh": "^0.4.6",
+    "jest": "^29.7.0",
+    "typescript": "^5.4.5",
+    "vite": "^8.1.0",
+    "vite-plugin-eslint": "^1.8.1"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=8.0.0"
+  }
+}

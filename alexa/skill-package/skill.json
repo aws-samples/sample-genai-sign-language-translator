@@ -1,0 +1,40 @@
+{
+  "manifest": {
+    "publishingInformation": {
+      "locales": {
+        "en-US": {
+          "summary": "A simple hello world skill with video support",
+          "examplePhrases": [
+            "Alexa, open ASL translator"
+          ],
+          "keywords": [
+            "asl",
+            "asl translator",
+            "american sign languauge",
+            "translator",
+            "american sign languauge translator"
+          ],
+          "name": "asl translator",
+          "description": "A simple skill that says asl translator and convert text to asl"
+        }
+      },
+      "isAvailableWorldwide": true,
+      "testingInstructions": "Say 'open asl' then try 'hello' or 'apple'.",
+      "category": "EDUCATION_AND_REFERENCE",
+      "distributionCountries": []
+    },
+    "apis": {
+      "custom": {
+        "interfaces": [
+          {
+            "type": "ALEXA_PRESENTATION_APL"
+          }
+        ],
+        "endpoint": {
+          "uri": "arn:aws:lambda:us-east-1:562964995983:function:ask-helloworld-default-default-1757021048701"
+        }
+      }
+    },
+    "manifestVersion": "1.0"
+  }
+}
