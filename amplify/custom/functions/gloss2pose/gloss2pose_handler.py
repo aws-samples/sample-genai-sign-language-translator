@@ -16,6 +16,9 @@ import uuid
 import pathlib
 from strands import tool
 
+# Configure logging first
+logger = logging.getLogger(__name__)
+
 # Add signlanguageagent to path for error handling imports
 current_dir = Path(__file__).parent
 agent_dir = current_dir.parent / 'signlanguageagent'

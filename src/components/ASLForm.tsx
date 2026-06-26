@@ -2,7 +2,7 @@ import "./ASLForm.css";
 
 import React, { Component, FormEvent } from "react";
 
-import IconButton from "@material-ui/core/IconButton";
+import IconButton from "@mui/material/IconButton";
 import ListenImageName from "../assets/voice-blue.png";
 import StopImageName from "../assets/stop-button.png";
 import Tooltip from "@mui/material/Tooltip";
@@ -321,12 +321,14 @@ class ASLForm extends Component<ASLFormProps, ASLFormState> {
               <td rowSpan={2}>
                 <div id="ENG2ASL-Div-Input" className="ENG2ASL_InputPanel">
                   <table id="ENG2ASL-Table-Input" className="ENG2ASL_InputSection">
-
+                    <thead>
+                    <tr>
                       <th>
                         <p>English
                           (Video/Audio/Text)</p>
                       </th>
-
+                    </tr>
+                    </thead>
                     <tbody>
                     <tr>
                       <td>

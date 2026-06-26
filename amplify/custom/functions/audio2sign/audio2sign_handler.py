@@ -16,17 +16,19 @@ AGENTCORE_AGENT_ARN = os.environ.get('AGENTCORE_AGENT_ARN')
 AGENTCORE_REGION = os.environ.get('AGENTCORE_REGION', 'us-west-2')
 
 # Initialize Bedrock AgentCore client
-bedrock_agentcore = boto3.client('bedrock-agentcore-runtime', region_name=AGENTCORE_REGION)
+# AgentCore uses a custom service endpoint
+agent_core_client = boto3.client('bedrock-agentcore', region_name=AGENTCORE_REGION)
 
 AGENT_AVAILABLE = bool(AGENTCORE_AGENT_ID and AGENTCORE_AGENT_ARN)
 if AGENT_AVAILABLE:
     logger.info(f"AgentCore agent available: {AGENTCORE_AGENT_ID}")
+    logger.info(f"AgentCore agent ARN: {AGENTCORE_AGENT_ARN}")
 else:
     logger.warning("AgentCore agent not configured")
 
 def lambda_handler(event, context):
     """
-    REST API handler that routes requests to the Strands agent instead of Step Functions
+    REST API handler that routes requests to the AgentCore agent
     Maintains backward compatibility with existing API response format
     """
     print('received event:')
@@ -51,30 +53,36 @@ def lambda_handler(event, context):
         # Extract query parameters
         query_params = event.get("queryStringParameters") or {}
         
-        # Handle status check requests (backward compatibility)
-        if "sfn_execution_arn" in query_params:
-            return handle_legacy_status_request(query_params["sfn_execution_arn"])
-        
         # Build input text for the agent
         input_text, metadata = build_agent_input(query_params, event)
         
         # Generate session ID
         session_id = event.get("requestContext", {}).get("requestId", str(int(time.time())))
         
+        logger.info(f"=== REQUEST DETAILS ===")
+        logger.info(f"Query Parameters: {json.dumps(query_params)}")
+        logger.info(f"Metadata: {json.dumps(metadata)}")
+        logger.info(f"Input Text: {input_text}")
+        logger.info(f"Session ID: {session_id}")
+        logger.info(f"Agent ID: {AGENTCORE_AGENT_ID}")
+        logger.info(f"======================")
+        
         logger.info(f"Invoking AgentCore agent {AGENTCORE_AGENT_ID} with input: {input_text}")
         
-        # Invoke the AgentCore agent
-        response = bedrock_agentcore.invoke_agent(
-            agentId=AGENTCORE_AGENT_ID,
-            sessionId=session_id,
-            inputText=input_text
-        )
-        
-        # Process the streaming response
-        agent_response = process_agentcore_response(response)
+        # Invoke the agent using bedrock-agent-runtime
+        agent_response = invoke_agentcore_agent(AGENTCORE_AGENT_ID, input_text, session_id)
         
         # Format response to maintain API compatibility
+        logger.info(f"=== RAW AGENT RESPONSE ===")
+        logger.info(f"Type: {type(agent_response)}")
+        logger.info(f"Response: {json.dumps(agent_response) if isinstance(agent_response, dict) else str(agent_response)[:500]}")
+        logger.info(f"==========================")
+        
         formatted_response = format_agent_response(agent_response, query_params)
+        
+        logger.info(f"=== FORMATTED RESPONSE ===")
+        logger.info(f"Response: {json.dumps(formatted_response, indent=2)}")
+        logger.info(f"==========================")
         
         logger.info("AgentCore agent invocation completed successfully")
         
@@ -93,6 +101,77 @@ def lambda_handler(event, context):
         logger.error(error_msg, exc_info=True)
         return format_error_response(error_msg, 500)
 
+def invoke_agentcore_agent(agent_id, input_text, session_id):
+    """
+    Invoke AgentCore agent using bedrock-agentcore client
+    """
+    try:
+        # Prepare the payload as shown in the sample
+        payload_dict = {"prompt": input_text}
+        payload = json.dumps(payload_dict).encode()
+        
+        logger.info(f"=== AGENT INVOCATION ===")
+        logger.info(f"Agent ARN: {AGENTCORE_AGENT_ARN}")
+        logger.info(f"Session ID: {session_id}")
+        logger.info(f"Payload: {json.dumps(payload_dict)}")
+        logger.info(f"========================")
+        
+        # Invoke the agent using bedrock-agentcore
+        response = agent_core_client.invoke_agent_runtime(
+            agentRuntimeArn=AGENTCORE_AGENT_ARN,
+            runtimeSessionId=session_id,
+            payload=payload
+        )
+        
+        # Process the response based on content type
+        content_type = response.get("contentType", "")
+        logger.info(f"=== AGENT RESPONSE ===")
+        logger.info(f"Content Type: {content_type}")
+        logger.info(f"Response Keys: {list(response.keys())}")
+        logger.info(f"======================")
+        
+        if "text/event-stream" in content_type:
+            # Handle streaming response
+            content = []
+            for line in response["response"].iter_lines(chunk_size=10):
+                if line:
+                    line = line.decode("utf-8")
+                    if line.startswith("data: "):
+                        line = line[6:]
+                    logger.info(f"Stream line: {line}")
+                    content.append(line)
+            
+            result = "\n".join(content)
+            logger.info(f"Complete streaming response: {result[:200]}...")
+            
+            # Try to parse as JSON
+            try:
+                return json.loads(result)
+            except json.JSONDecodeError:
+                return {"message": result, "raw_response": result}
+                
+        elif content_type == "application/json":
+            # Handle standard JSON response
+            content = []
+            for chunk in response.get("response", []):
+                content.append(chunk.decode('utf-8'))
+            
+            result = json.loads(''.join(content))
+            logger.info(f"=== PARSED JSON RESPONSE ===")
+            logger.info(f"Response: {json.dumps(result, indent=2)}")
+            logger.info(f"============================")
+            return result
+            
+        else:
+            # Handle other content types
+            logger.warning(f"Unexpected content type: {content_type}")
+            raw_response = response.get("response", "")
+            return {"message": "Response received", "contentType": content_type, "response": str(raw_response)}
+            
+    except Exception as e:
+        logger.error(f"Error invoking AgentCore agent: {e}", exc_info=True)
+        raise
+
 def build_agent_input(query_params, event):
     """Build agent input text from API request parameters"""
     metadata = {}
@@ -100,67 +179,29 @@ def build_agent_input(query_params, event):
     # Determine request type and build appropriate input
     if "Gloss" in query_params:
         # Direct gloss-to-video request
-        input_text = f"Convert this ASL gloss to video: {query_params['Gloss']}"
+        input_text = f"Translate this ASL gloss to sign language video: {query_params['Gloss']}"
         metadata["gloss"] = query_params["Gloss"]
         metadata["type"] = "gloss"
         
     elif "Text" in query_params:
         # Text-to-ASL translation request
-        input_text = query_params["Text"]
+        input_text = f"Translate this English text to American Sign Language: {query_params['Text']}"
         metadata["text"] = query_params["Text"]
         metadata["type"] = "text"
         
     elif "BucketName" in query_params and "KeyName" in query_params:
         # Audio-to-ASL translation request
-        input_text = f"Process audio file from S3 bucket {query_params['BucketName']} with key {query_params['KeyName']} and convert to ASL"
+        input_text = f"Translate the audio file from S3 bucket {query_params['BucketName']} with key {query_params['KeyName']} to American Sign Language"
         metadata["bucket_name"] = query_params["BucketName"]
         metadata["key_name"] = query_params["KeyName"]
         metadata["type"] = "audio"
         
     else:
         # Default to text processing if no specific parameters
-        input_text = query_params.get("message", "Hello")
+        input_text = f"Translate this English text to American Sign Language: {query_params.get('message', 'Hello')}"
         metadata["type"] = "text"
     
     return input_text, metadata
-
-def process_agentcore_response(response):
-    """Process AgentCore streaming response and extract the result"""
-    try:
-        # AgentCore returns a streaming response
-        event_stream = response.get('completion', [])
-        
-        result_text = ""
-        result_data = {}
-        
-        for event in event_stream:
-            if 'chunk' in event:
-                chunk = event['chunk']
-                if 'bytes' in chunk:
-                    # Decode the bytes to text
-                    chunk_text = chunk['bytes'].decode('utf-8')
-                    result_text += chunk_text
-            elif 'trace' in event:
-                # Handle trace events for debugging
-                trace = event['trace']
-                logger.info(f"Agent trace: {trace}")
-            elif 'returnControl' in event:
-                # Handle return control events
-                return_control = event['returnControl']
-                logger.info(f"Agent return control: {return_control}")
-                result_data = return_control
-        
-        # Try to parse as JSON if possible
-        try:
-            parsed_result = json.loads(result_text)
-            return parsed_result
-        except json.JSONDecodeError:
-            # Return as plain text if not JSON
-            return result_text if result_text else result_data
-            
-    except Exception as e:
-        logger.error(f"Error processing AgentCore response: {e}", exc_info=True)
-        return f"Error processing agent response: {str(e)}"
 
 def format_agent_response(agent_response, query_params):
     """Format agent response using the enhanced response formatter"""
@@ -202,10 +243,14 @@ def format_agent_response_fallback(agent_response, query_params):
         # For backward compatibility, try to extract key information
         response_data = {}
         
+        # If response is already a dict, use it
+        if isinstance(agent_response, dict):
+            return agent_response
+        
         # Extract URLs from response text
         import re
         url_pattern = r'https?://[^\s<>"{}|\\^`\[\]]+'
-        urls = re.findall(url_pattern, agent_response)
+        urls = re.findall(url_pattern, str(agent_response))
         
         # Map URLs to expected format
         if urls:
@@ -224,14 +269,14 @@ def format_agent_response_fallback(agent_response, query_params):
                     response_data['AvatarURL'] = url
         
         # Extract gloss information
-        gloss_match = re.search(r'(?:ASL Gloss|Gloss):\s*([^\n]+)', agent_response, re.IGNORECASE)
+        gloss_match = re.search(r'(?:ASL Gloss|Gloss):\s*([^\n]+)', str(agent_response), re.IGNORECASE)
         if gloss_match:
             response_data['Gloss'] = gloss_match.group(1).strip()
         elif "Gloss" in query_params:
             response_data['Gloss'] = query_params["Gloss"]
         
         # Extract text information
-        text_match = re.search(r'(?:Original text|Text):\s*"([^"]+)"', agent_response, re.IGNORECASE)
+        text_match = re.search(r'(?:Original text|Text):\s*"([^"]+)"', str(agent_response), re.IGNORECASE)
         if text_match:
             response_data['Text'] = text_match.group(1).strip()
         elif "Text" in query_params:
@@ -240,7 +285,7 @@ def format_agent_response_fallback(agent_response, query_params):
         # If no structured data found, return the response as-is with metadata
         if not response_data:
             response_data = {
-                "message": agent_response,
+                "message": str(agent_response),
                 "status": "completed",
                 "timestamp": int(time.time())
             }
@@ -254,26 +299,6 @@ def format_agent_response_fallback(agent_response, query_params):
             "status": "completed",
             "timestamp": int(time.time())
         }
-
-def handle_legacy_status_request(execution_arn):
-    """Handle legacy Step Functions status requests for backward compatibility"""
-    logger.info(f"Handling legacy status request for: {execution_arn}")
-    
-    # For backward compatibility, return a completed status
-    # In a real migration, you might want to track agent execution status
-    return {
-        'statusCode': 200,
-        'headers': {
-            'Access-Control-Allow-Headers': '*',
-            'Access-Control-Allow-Origin': '*',
-            'Access-Control-Allow-Methods': 'OPTIONS,POST,GET'
-        },
-        'body': json.dumps({
-            "status": "SUCCEEDED",
-            "message": "Request processed by AgentCore agent",
-            "timestamp": int(time.time())
-        })
-    }
 
 def format_error_response(error_message, status_code=500):
     """Format error response with proper CORS headers"""
@@ -290,4 +315,3 @@ def format_error_response(error_message, status_code=500):
             "timestamp": int(time.time())
         })
     }
-

@@ -80,7 +80,7 @@ backend.addOutput({
   },
   custom: {
     ENV:{
-      amplify_env: process.env.AMPLIFY_ENV,
+      amplify_env: amplifyEnv,
       region: Stack.of(genASLBackendStack).region,
     },
     API: {

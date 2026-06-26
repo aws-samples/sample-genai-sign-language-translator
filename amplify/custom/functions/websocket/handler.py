@@ -91,11 +91,17 @@ def process_websocket_message_with_agent(data, connection_id, event):
         return process_legacy_websocket_message(data)
     
     try:
+        print(f"=== WEBSOCKET MESSAGE RECEIVED ===")
+        print(f"Raw data: {json.dumps(data, indent=2)}")
+        print(f"Data keys: {list(data.keys())}")
+        
         # Build agent input based on message content
         stream_name = data.get('StreamName', '')
         bucket_name = data.get('BucketName', '')
         key_name = data.get('KeyName', '')
         text_content = data.get('text', data.get('message', ''))
+        
+        print(f"Extracted text_content: '{text_content}'")
         
         # Construct the input message for the agent
         if stream_name:
@@ -116,12 +122,22 @@ def process_websocket_message_with_agent(data, connection_id, event):
             input_data = {"type": "text"}
         
         print(f"Invoking AgentCore agent {AGENTCORE_AGENT_ID} with input: {input_text}")
+        print(f"Input data: {json.dumps(input_data)}")
         
-        # Invoke the AgentCore agent
+        # Invoke the AgentCore agent via HTTP
+        # AgentCore agents are invoked through their runtime endpoint
+        payload = {
+            "prompt": input_text,
+            "message": input_text,
+            **input_data
+        }
+        
+        print(f"Agent payload: {json.dumps(payload)}")
+        
         response = bedrock_agentcore.invoke_agent(
             agentId=AGENTCORE_AGENT_ID,
             sessionId=connection_id,
-            inputText=input_text
+            inputText=json.dumps(payload)  # Send the full payload as JSON
         )
         
         # Process the streaming response

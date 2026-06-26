@@ -4,3 +4,9 @@ dist
 amplify_outputs.json
 .DS_Store
 **/__pycache__/** 
+
+
+# FFmpeg layer binary (GPL-3, ~79 MB) is pulled at build time, not committed.
+# It is fetched automatically during CDK synth and in the Amplify preBuild
+# phase via amplify/custom/functions/layers/ffmpeg/download_ffmpeg.sh
+amplify/custom/functions/layers/ffmpeg/bin/ffmpeg

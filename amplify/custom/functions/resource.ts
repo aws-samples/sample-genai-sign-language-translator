@@ -15,6 +15,27 @@ import * as ddb from 'aws-cdk-lib/aws-dynamodb';
 import * as s3 from 'aws-cdk-lib/aws-s3';
 import {S3} from "aws-cdk-lib/aws-ses-actions";
 import {Bucket} from "aws-cdk-lib/aws-s3";
+import { execFileSync } from 'child_process';
+import * as fs from 'fs';
+import * as path from 'path';
+
+const FFMPEG_LAYER_DIR = './amplify/custom/functions/layers/ffmpeg';
+
+/**
+ * Ensures the GPL-3 FFmpeg binary is present before the layer asset is packaged.
+ * The binary is not committed to the repository (see .gitignore); it is pulled
+ * at build time via download_ffmpeg.sh. This runs during CDK synth so it works
+ * for both `npx ampx sandbox` and `npx ampx pipeline-deploy`.
+ */
+function ensureFfmpegBinary(): void {
+    const binPath = path.join(FFMPEG_LAYER_DIR, 'bin', 'ffmpeg');
+    if (fs.existsSync(binPath)) {
+        return;
+    }
+    const script = path.join(FFMPEG_LAYER_DIR, 'download_ffmpeg.sh');
+    console.log(`FFmpeg binary not found at ${binPath}; running ${script} ...`);
+    execFileSync('bash', [script], { stdio: 'inherit' });
+}
 
 interface GenASLConfig {
     lambdaSettings: {
@@ -77,8 +98,10 @@ export class GenASLBackendStack extends Stack {
         });
 
        // Define the FFmpeg Layer
+        // The GPL-3 binary is fetched at build time (not committed); see download_ffmpeg.sh
+        ensureFfmpegBinary();
         const ffmpegLayer = new lambda.LayerVersion(this, 'FFmpegLayer', {
-          code: lambda.Code.fromAsset('./amplify/custom/functions/layers/ffmpeg'),
+          code: lambda.Code.fromAsset(FFMPEG_LAYER_DIR),
           compatibleRuntimes: [lambda.Runtime.PYTHON_3_11],
           description: 'FFmpeg layer for video processing',
 
@@ -157,7 +180,7 @@ export class GenASLBackendStack extends Stack {
             runtime: lambda.Runtime.PYTHON_3_11, // Specify the runtime
             handler: 'text2gloss_handler.lambda_handler',           // Specify the handler function
             code: lambda.Code.fromAsset('./amplify/custom/functions/text2gloss'),
-            functionName: 'Text2GlossFunction-' + process.env.AMPLIFY_ENV,
+            functionName: 'Text2GlossFunction-' + (config.amplifyEnv || 'dev'),
             description: 'This function converts text to gloss',
             timeout: Duration.seconds(300), // Reduced timeout for text processing
             memorySize: 512, // Reduced memory for text processing
@@ -177,7 +200,7 @@ export class GenASLBackendStack extends Stack {
             runtime: lambda.Runtime.PYTHON_3_11,
             handler: 'process_transcription_handler.lambda_handler',
             code: lambda.Code.fromAsset('./amplify/custom/functions/process_transcription'),
-            functionName: 'ProcessTranscriptionFunction-' + process.env.AMPLIFY_ENV,
+            functionName: 'ProcessTranscriptionFunction-' + (config.amplifyEnv || 'dev'),
             description: 'This function processes the transcription job result',
             timeout: Duration.seconds(120), // Reduced timeout for transcription processing
             memorySize: 512, // Reduced memory for transcription processing
@@ -310,10 +333,10 @@ export class GenASLBackendStack extends Stack {
         processTranscription.next(text2Gloss);
         text2Gloss.next(gloss2Pose);
         
-        // const logGroup = new logs.LogGroup(this, 'GenASLStateMachineLogGroup'+process.env.AMPLIFY_ENV);
+        // const logGroup = new logs.LogGroup(this, 'GenASLStateMachineLogGroup'+(config.amplifyEnv || 'dev'));
 
         // Create the state machine
-        const stateMachine = new sfn.StateMachine(this, 'GenASLStateMachine'+process.env.AMPLIFY_ENV, {
+        const stateMachine = new sfn.StateMachine(this, 'GenASLStateMachine'+(config.amplifyEnv || 'dev'), {
             definition: inputCheck,
             comment: 'A state machine that converts english text to ASL sign',
             role: stateMachineRole,
@@ -337,7 +360,7 @@ export class GenASLBackendStack extends Stack {
           runtime: lambda.Runtime.PYTHON_3_11, // Specify the runtime
           handler: 'audio2sign_handler.lambda_handler',           // Specify the handler function
           code: lambda.Code.fromAsset('./amplify/custom/functions/audio2sign'),
-          functionName: 'Audio2SignFunction-' + process.env.AMPLIFY_ENV,
+          functionName: 'Audio2SignFunction-' + (config.amplifyEnv || 'dev'),
           description: 'This function converts audio to sign',
           timeout: Duration.seconds(config.lambdaSettings.timeout),
           memorySize: config.lambdaSettings.memorySize,
@@ -360,14 +383,15 @@ export class GenASLBackendStack extends Stack {
           resources: ["*"],
         }));
 
-        // Grant audio2SignFunction permission to invoke the agentcore agent
+        // Grant audio2SignFunction permission to invoke the AgentCore agent
         audio2SignFunction.addToRolePolicy(new iam.PolicyStatement({
             effect: iam.Effect.ALLOW,
             actions: [
-                'bedrock-agentcore:InvokeAgent',
-                'bedrock-agentcore:InvokeAgentStreaming'
+                'bedrock-agentcore:InvokeAgentRuntime',
+                'bedrock-agentcore:GetSession',
+                'bedrock-agentcore:CreateSession'
             ],
-            resources: ['arn:aws:bedrock-agentcore:us-west-2:853513360253:runtime/slagent-4BncgN2p1h'],
+            resources: ['*'],
         }));
 
         // Create the Conversational ASL Agent Lambda function (enhanced SignLanguageAgent)
@@ -601,34 +625,6 @@ export class GenASLBackendStack extends Stack {
                     gloss2PoseFunction.metricErrors(),
                     blendedPoseFunction.metricErrors()
                 ],
-            }),
-            new cloudwatch.GraphWidget({
-                title: 'API Gateway Metrics',
-                left: [
-                    new cloudwatch.Metric({
-                        namespace: 'AWS/ApiGateway',
-                        metricName: 'Count',
-                        dimensionsMap: {
-                            ApiName: this.api.restApiName,
-                        },
-                    }),
-                ],
-                right: [
-                    new cloudwatch.Metric({
-                        namespace: 'AWS/ApiGateway',
-                        metricName: '4XXError',
-                        dimensionsMap: {
-                            ApiName: this.api.restApiName,
-                        },
-                    }),
-                    new cloudwatch.Metric({
-                        namespace: 'AWS/ApiGateway',
-                        metricName: '5XXError',
-                        dimensionsMap: {
-                            ApiName: this.api.restApiName,
-                        },
-                    }),
-                ],
             })
         );
 
@@ -712,7 +708,7 @@ export class GenASLBackendStack extends Stack {
       runtime: lambda.Runtime.PYTHON_3_12,
       handler: 'text2audio_handler.lambda_handler',
       code: lambda.Code.fromAsset('./amplify/custom/functions/text2audio'),
-        functionName: 'Text2GAudioFunction-' + process.env.AMPLIFY_ENV,
+        functionName: 'Text2GAudioFunction-' + (config.amplifyEnv || 'dev'),
         description: 'This function converts text to audio',
         timeout: Duration.seconds(config.lambdaSettings.timeout),
         environment: {
@@ -729,8 +725,8 @@ export class GenASLBackendStack extends Stack {
     this.dataBucket.grantReadWrite(textToSpeechFunction);
 
     // Create an API Gateway
-    this.api = new apigateway.RestApi(this, 'GenASLAPI' + process.env.AMPLIFY_ENV, {
-      restApiName: 'GenASLAPI' + process.env.AMPLIFY_ENV,
+    this.api = new apigateway.RestApi(this, 'GenASLAPI' + (config.amplifyEnv || 'dev'), {
+      restApiName: 'GenASLAPI' + (config.amplifyEnv || 'dev'),
       description: 'APIs for supporting bidirectional English to ASL ',
         defaultMethodOptions: {
         authorizationType: apigateway.AuthorizationType.NONE
@@ -801,18 +797,18 @@ export class GenASLBackendStack extends Stack {
     });
 
     /**Websocket Stack */
-    const websocketTable = new ddb.Table(this, 'ConnectionsTable-'+ process.env.AMPLIFY_ENV, {
+    const websocketTable = new ddb.Table(this, 'ConnectionsTable-'+ (config.amplifyEnv || 'dev'), {
         partitionKey: { name: 'pk', type: ddb.AttributeType.STRING },
         sortKey: { name: 'epoch', type: ddb.AttributeType.NUMBER },
         removalPolicy: cdk.RemovalPolicy.DESTROY,
         billingMode: ddb.BillingMode.PAY_PER_REQUEST,
     });
     
-    const onConnectFunction = new lambda.Function(this, 'OnConnectFunction-'+ process.env.AMPLIFY_ENV, {
+    const onConnectFunction = new lambda.Function(this, 'OnConnectFunction-'+ (config.amplifyEnv || 'dev'), {
         runtime: lambda.Runtime.PYTHON_3_11, // Specify the runtime
         handler: 'handler.connect',           // Specify the handler function
         code: lambda.Code.fromAsset('./amplify/custom/functions/websocket'),
-        functionName: 'OnConnectFunction-'+ process.env.AMPLIFY_ENV,
+        functionName: 'OnConnectFunction-'+ (config.amplifyEnv || 'dev'),
         description: 'This function is called when a user connects to the websocket',
         timeout: Duration.seconds(30), // Reduced timeout for connection handling
         layers: [ffmpegLayer],
@@ -825,11 +821,11 @@ export class GenASLBackendStack extends Stack {
         },
     });
 
-    const OnDisConnectFunction = new lambda.Function(this, 'OnDisConnectFunction-'+ process.env.AMPLIFY_ENV, {
+    const OnDisConnectFunction = new lambda.Function(this, 'OnDisConnectFunction-'+ (config.amplifyEnv || 'dev'), {
         runtime: lambda.Runtime.PYTHON_3_11, // Specify the runtime
         handler: 'handler.disconnect',           // Specify the handler function
         code: lambda.Code.fromAsset('./amplify/custom/functions/websocket'),
-        functionName: 'OnDisConnectFunction-'+ process.env.AMPLIFY_ENV,
+        functionName: 'OnDisConnectFunction-'+ (config.amplifyEnv || 'dev'),
         description: 'This function is called when a user disconnects to the websocket',
         timeout: Duration.seconds(30), // Reduced timeout for disconnection handling
         layers: [ffmpegLayer],
@@ -842,11 +838,11 @@ export class GenASLBackendStack extends Stack {
         },
     });
 
-    const OnDefaultFunction = new lambda.Function(this, 'OnDefaultFunction-'+ process.env.AMPLIFY_ENV, {
+    const OnDefaultFunction = new lambda.Function(this, 'OnDefaultFunction-'+ (config.amplifyEnv || 'dev'), {
         runtime: lambda.Runtime.PYTHON_3_11, // Specify the runtime
         handler: 'handler.default',           // Specify the handler function
         code: lambda.Code.fromAsset('./amplify/custom/functions/websocket'),
-        functionName: 'OnDefaultFunction-'+ process.env.AMPLIFY_ENV,
+        functionName: 'OnDefaultFunction-'+ (config.amplifyEnv || 'dev'),
         timeout: Duration.seconds(300), // Increased timeout for agent communication
         memorySize: 1024, // Adequate memory for agent communication and processing
         layers: [ffmpegLayer],
@@ -896,7 +892,7 @@ export class GenASLBackendStack extends Stack {
     this.dataBucket.grantReadWrite(OnDefaultFunction);
 
     this.webSocketApi = new WebSocketApi(this, 'ServerlessChatWebsocketApi', {
-        apiName: 'GenASLWSS'+ process.env.AMPLIFY_ENV,
+        apiName: 'GenASLWSS'+ (config.amplifyEnv || 'dev'),
         connectRouteOptions: { integration: new WebSocketLambdaIntegration("ConnectIntegration", onConnectFunction)},
         disconnectRouteOptions: { integration: new WebSocketLambdaIntegration("DisconnectIntegration", OnDisConnectFunction) },
         defaultRouteOptions: { integration: new WebSocketLambdaIntegration("DefaultIntegration", OnDefaultFunction) },

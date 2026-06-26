@@ -10,6 +10,9 @@ import boto3
 from botocore.exceptions import ClientError, BotoCoreError
 from strands import tool
 
+# Configure logging first
+logger = logging.getLogger(__name__)
+
 # Add signlanguageagent to path for error handling imports
 current_dir = Path(__file__).parent
 agent_dir = current_dir.parent / 'signlanguageagent'
@@ -45,9 +48,6 @@ except ImportError as e:
         def decorator(func):
             return func
         return decorator
-
-# Configure logging
-logger = logging.getLogger(__name__)
 logger.setLevel(logging.INFO)
 
 eng_to_asl_model = os.environ.get('ENG_TO_ASL_MODEL', 'amazon.nova-lite-v1:0')

@@ -27,6 +27,7 @@ logger = setup_logging(config.agent.log_level)
 # Import the AgentCore SDK
 from bedrock_agentcore.runtime import BedrockAgentCoreApp
 from strands import Agent
+from strands.models import BedrockModel
 
 
 
@@ -36,17 +37,16 @@ def setup_module_paths():
     current_dir = Path(__file__).parent
     functions_dir = current_dir.parent
     
-    # Add text2gloss module path
-    text2gloss_path = functions_dir / 'text2gloss'
-    if text2gloss_path.exists():
-        sys.path.insert(0, str(text2gloss_path))
-        logger.info(f"Added text2gloss path: {text2gloss_path}")
+    # List of tool directories to add to path
+    tool_dirs = ['text2gloss', 'gloss2pose', 'audio_processing', 'asl_analysis', 'audio2sign']
     
-    # Add gloss2pose module path
-    gloss2pose_path = functions_dir / 'gloss2pose'
-    if gloss2pose_path.exists():
-        sys.path.insert(0, str(gloss2pose_path))
-        logger.info(f"Added gloss2pose path: {gloss2pose_path}")
+    for tool_dir in tool_dirs:
+        tool_path = functions_dir / tool_dir
+        if tool_path.exists():
+            sys.path.insert(0, str(tool_path))
+            logger.info(f"Added {tool_dir} path: {tool_path}")
+        else:
+            logger.warning(f"Tool directory not found: {tool_path}")
 
 # Set up paths and import tools
 setup_module_paths()
@@ -199,16 +199,22 @@ Remember: You are here to make ASL translation accessible and easy for everyone.
 # Create the AgentCore app
 app = BedrockAgentCoreApp()
 
-# Initialize the Strands agent with all available tools
-agent = Agent(
-    model=config.model.eng_to_asl_model,
-    system_prompt=SYSTEM_PROMPT,
-    tools=available_tools,
+# Initialize the Bedrock model with configuration
+bedrock_model = BedrockModel(
+    model_id=config.model.eng_to_asl_model,
     max_tokens=config.model.max_tokens,
-    temperature=config.model.temperature
+    temperature=config.model.temperature,
+    region_name=config.aws.region
 )
 
-logger.info(f"Agent initialized with {len(agent.tools)} tools: {[tool.__name__ for tool in agent.tools]}")
+# Initialize the Strands agent with all available tools
+agent = Agent(
+    model=bedrock_model,
+    system_prompt=SYSTEM_PROMPT,
+    tools=available_tools
+)
+
+logger.info(f"Agent initialized with {len(available_tools)} tools: {[tool.__name__ for tool in available_tools]}")
 
 def route_request_with_workflow(user_message: str, request_type: str, 
                               metadata: Dict[str, Any], session_id: Optional[str] = None,
@@ -226,6 +232,16 @@ def route_request_with_workflow(user_message: str, request_type: str,
     Returns:
         Tuple[Union[str, Dict], ConversationContext]: Workflow result or enhanced message and conversation context
     """
+    logger.info("=" * 80)
+    logger.info("AGENT REQUEST RECEIVED")
+    logger.info("=" * 80)
+    logger.info(f"User Message: {user_message}")
+    logger.info(f"Request Type: {request_type}")
+    logger.info(f"Metadata: {json.dumps(metadata, indent=2)}")
+    logger.info(f"Session ID: {session_id}")
+    logger.info(f"User ID: {user_id}")
+    logger.info("=" * 80)
+    
     # Get or create conversation context
     context = conversation_manager.get_or_create_context(session_id, user_id)
     
@@ -319,6 +335,14 @@ def route_request_with_workflow(user_message: str, request_type: str,
             # Clear pending operations
             context.pending_operations = []
             
+            logger.info("=" * 80)
+            logger.info("AGENT WORKFLOW RESULT")
+            logger.info("=" * 80)
+            logger.info(f"Workflow ID: {workflow_id}")
+            logger.info(f"Result Type: {type(result)}")
+            logger.info(f"Result: {json.dumps(result, indent=2) if isinstance(result, dict) else str(result)[:500]}")
+            logger.info("=" * 80)
+            
             return result, context
             
         except Exception as e:
@@ -357,6 +381,11 @@ def route_request_with_workflow(user_message: str, request_type: str,
     enhanced_message = " ".join(enhanced_message_parts)
     
     logger.info(f"Request routed to agent processing: {detected_intent.value}")
+    logger.info("=" * 80)
+    logger.info("AGENT RESPONSE (Enhanced Message)")
+    logger.info("=" * 80)
+    logger.info(f"Enhanced Message: {enhanced_message}")
+    logger.info("=" * 80)
     return enhanced_message, context
 
 
@@ -564,6 +593,17 @@ def invoke(payload: Dict[str, Any]) -> str:
                 len(result)
             )
         
+        # Log the final response being returned
+        logger.info("=" * 80)
+        logger.info("AGENT RESPONSE BEING RETURNED TO CALLER")
+        logger.info("=" * 80)
+        logger.info(f"Response Type: {type(result)}")
+        logger.info(f"Response Length: {len(result)} characters")
+        logger.info(f"Response Preview (first 500 chars):\n{result[:500]}")
+        if len(result) > 500:
+            logger.info(f"Response Preview (last 200 chars):\n...{result[-200:]}")
+        logger.info("=" * 80)
+        
         return result
         
     except ValueError as e:
@@ -592,6 +632,15 @@ def invoke(payload: Dict[str, Any]) -> str:
                     "validation_error"
                 )
             
+            # Log error response being returned
+            logger.info("=" * 80)
+            logger.info("ERROR RESPONSE BEING RETURNED TO CALLER")
+            logger.info("=" * 80)
+            logger.info(f"Error Type: Validation Error")
+            logger.info(f"Error Message: {str(e)}")
+            logger.info(f"Recovery Message: {recovery_message}")
+            logger.info("=" * 80)
+            
             return recovery_message
         
         # Log the error
@@ -602,6 +651,14 @@ def invoke(payload: Dict[str, Any]) -> str:
                 e,
                 "validation_error"
             )
+        
+        # Log error response being returned
+        logger.info("=" * 80)
+        logger.info("ERROR RESPONSE BEING RETURNED TO CALLER")
+        logger.info("=" * 80)
+        logger.info(f"Error Type: Validation Error")
+        logger.info(f"Error Message: {error_msg}")
+        logger.info("=" * 80)
         
         return error_msg
         
@@ -632,6 +689,15 @@ def invoke(payload: Dict[str, Any]) -> str:
                         "agent_error_recovered"
                     )
                 
+                # Log error response being returned
+                logger.info("=" * 80)
+                logger.info("ERROR RESPONSE (WITH RECOVERY) BEING RETURNED TO CALLER")
+                logger.info("=" * 80)
+                logger.info(f"Error Type: {type(e).__name__}")
+                logger.info(f"Error Message: {str(e)}")
+                logger.info(f"Recovery Message: {recovery_message}")
+                logger.info("=" * 80)
+                
                 return recovery_message
             else:
                 error_response = conversation_manager.handle_error_response(str(e), context)
@@ -644,6 +710,15 @@ def invoke(payload: Dict[str, Any]) -> str:
                         e,
                         "agent_error"
                     )
+                
+                # Log error response being returned
+                logger.info("=" * 80)
+                logger.info("ERROR RESPONSE BEING RETURNED TO CALLER")
+                logger.info("=" * 80)
+                logger.info(f"Error Type: {type(e).__name__}")
+                logger.info(f"Error Message: {str(e)}")
+                logger.info(f"Error Response: {error_response}")
+                logger.info("=" * 80)
                 
                 return error_response
         
@@ -661,7 +736,7 @@ def invoke(payload: Dict[str, Any]) -> str:
 def health_check() -> Dict[str, Any]:
     """Health check endpoint for monitoring"""
     try:
-        tool_names = [tool.__name__ for tool in agent.tools] if hasattr(agent, 'tools') else []
+        tool_names = [tool.__name__ for tool in available_tools]
         
         # Get health metrics from monitoring manager
         health_metrics = monitoring_manager.get_health_metrics()
@@ -681,7 +756,7 @@ def health_check() -> Dict[str, Any]:
             "status": status,
             "timestamp": datetime.now().isoformat(),
             "agent_model": config.model.eng_to_asl_model,
-            "tools_count": len(agent.tools),
+            "tools_count": len(available_tools),
             "available_tools": tool_names,
             "capabilities": {
                 "text_to_asl": "text_to_asl_gloss" in tool_names,
@@ -701,9 +776,10 @@ def health_check() -> Dict[str, Any]:
         }
     except Exception as e:
         # Log the health check failure
+        from .monitoring import AlertLevel
         monitoring_manager.alert_manager.create_alert(
             "health_check_failure",
-            monitoring_manager.alert_manager.AlertLevel.ERROR,
+            AlertLevel.ERROR,
             f"Health check failed: {str(e)}"
         )
         

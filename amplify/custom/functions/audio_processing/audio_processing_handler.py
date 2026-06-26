@@ -13,6 +13,10 @@ import requests
 import re
 from strands import tool
 
+# Configure logging first
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
+
 # Add signlanguageagent to path for error handling imports
 current_dir = Path(__file__).parent
 agent_dir = current_dir.parent / 'signlanguageagent'
@@ -31,10 +35,6 @@ except ImportError as e:
     # Create dummy decorator if error handling not available
     def transcribe_retry(func):
         return func
-
-# Configure logging
-logger = logging.getLogger(__name__)
-logger.setLevel(logging.INFO)
 
 # Environment variables
 transcribe_region = os.environ.get('AWS_REGION', 'us-east-1')

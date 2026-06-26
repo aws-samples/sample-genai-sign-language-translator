@@ -97,9 +97,12 @@ def validate_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     if not isinstance(payload, dict):
         raise ValueError("Payload must be a dictionary")
     
+    # Extract message from either 'message' or 'prompt' field
+    message = payload.get('message', '') or payload.get('prompt', '') or payload.get('text', '')
+    
     # Set defaults
     normalized = {
-        'message': payload.get('message', ''),
+        'message': message,
         'type': payload.get('type', 'text'),
         'metadata': payload.get('metadata', {}),
         'session_id': payload.get('session_id'),
@@ -108,7 +111,7 @@ def validate_payload(payload: Dict[str, Any]) -> Dict[str, Any]:
     
     # Validate message
     if not normalized['message']:
-        raise ValueError("Message cannot be empty")
+        raise ValueError("Message cannot be empty. Please provide 'message', 'prompt', or 'text' field.")
     
     # Validate type
     valid_types = ['text', 'audio', 'video']
