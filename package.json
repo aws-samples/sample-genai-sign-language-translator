@@ -47,5 +47,9 @@
     "tsx": "^4.7.2",
     "typescript": "^5.4.5",
     "vite": "^6.4.3"
+  },
+  "overrides": {
+    "js-yaml": "^4.1.1",
+    "lodash-es": "4.17.23"
   }
 }
