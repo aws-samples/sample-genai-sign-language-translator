@@ -18,10 +18,14 @@ from __future__ import annotations
 import io
 import os
 import struct
-from collections.abc import Callable
-from typing import IO, cast
+from typing import cast
 
 from . import Image, ImageFile, ImagePalette, _binary
+
+TYPE_CHECKING = False
+if TYPE_CHECKING:
+    from collections.abc import Callable
+    from typing import IO
 
 
 class BoxReader:
@@ -172,6 +176,7 @@ def _parse_jp2_header(
     nc = None
     dpi = None  # 2-tuple of DPI info, or None
     palette = None
+    colr = None
 
     while header.has_next_box():
         tbox = header.next_box_type()
@@ -192,11 +197,18 @@ def _parse_jp2_header(
                 mode = "RGB"
             elif nc == 4:
                 mode = "RGBA"
-        elif tbox == b"colr" and nc == 4:
+        elif tbox == b"colr":
             meth, _, _, enumcs = header.read_fields(">BBBI")
-            if meth == 1 and enumcs == 12:
-                mode = "CMYK"
-        elif tbox == b"pclr" and mode in ("L", "LA"):
+            if meth == 1:
+                if enumcs in (0, 15):
+                    colr = "1"
+                elif enumcs == 12:
+                    colr = "CMYK"
+                    if nc == 4:
+                        mode = "CMYK"
+                elif enumcs == 17:
+                    colr = "L"
+        elif tbox == b"pclr" and mode in ("L", "LA") and colr not in ("1", "L"):
             ne, npc = header.read_fields(">HB")
             assert isinstance(ne, int)
             assert isinstance(npc, int)
@@ -206,7 +218,11 @@ def _parse_jp2_header(
                 if bitdepth > max_bitdepth:
                     max_bitdepth = bitdepth
             if max_bitdepth <= 8:
-                palette = ImagePalette.ImagePalette("RGBA" if npc == 4 else "RGB")
+                if npc == 4:
+                    palette_mode = "CMYK" if colr == "CMYK" else "RGBA"
+                else:
+                    palette_mode = "RGB"
+                palette = ImagePalette.ImagePalette(palette_mode)
                 for i in range(ne):
                     color: list[int] = []
                     for value in header.read_fields(">" + ("B" * npc)):
@@ -248,10 +264,12 @@ class Jpeg2KImageFile(ImageFile.ImageFile):
     format_description = "JPEG 2000 (ISO 15444)"
 
     def _open(self) -> None:
+        assert self.fp is not None
         sig = self.fp.read(4)
         if sig == b"\xff\x4f\xff\x51":
             self.codec = "j2k"
             self._size, self._mode = _parse_codestream(self.fp)
+            self._parse_comment()
         else:
             sig = sig + self.fp.read(8)
 
@@ -262,6 +280,9 @@ class Jpeg2KImageFile(ImageFile.ImageFile):
                 if dpi is not None:
                     self.info["dpi"] = dpi
                 if self.fp.read(12).endswith(b"jp2c\xff\x4f\xff\x51"):
+                    hdr = self.fp.read(2)
+                    length = _binary.i16be(hdr)
+                    self.fp.seek(length - 2, os.SEEK_CUR)
                     self._parse_comment()
             else:
                 msg = "not a JPEG 2000 file"
@@ -296,10 +317,7 @@ class Jpeg2KImageFile(ImageFile.ImageFile):
         ]
 
     def _parse_comment(self) -> None:
-        hdr = self.fp.read(2)
-        length = _binary.i16be(hdr)
-        self.fp.seek(length - 2, os.SEEK_CUR)
-
+        assert self.fp is not None
         while True:
             marker = self.fp.read(2)
             if not marker:
@@ -352,9 +370,8 @@ class Jpeg2KImageFile(ImageFile.ImageFile):
 
 
 def _accept(prefix: bytes) -> bool:
-    return (
-        prefix[:4] == b"\xff\x4f\xff\x51"
-        or prefix[:12] == b"\x00\x00\x00\x0cjP  \x0d\x0a\x87\x0a"
+    return prefix.startswith(
+        (b"\xff\x4f\xff\x51", b"\x00\x00\x00\x0cjP  \x0d\x0a\x87\x0a")
     )
 
 

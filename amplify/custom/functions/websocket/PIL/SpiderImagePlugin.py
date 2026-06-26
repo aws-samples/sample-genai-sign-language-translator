@@ -37,9 +37,12 @@ from __future__ import annotations
 import os
 import struct
 import sys
-from typing import IO, TYPE_CHECKING, Any, cast
+from typing import IO, Any, cast
 
 from . import Image, ImageFile
+from ._util import DeferredError
+
+TYPE_CHECKING = False
 
 
 def isInt(f: Any) -> int:
@@ -101,6 +104,7 @@ class SpiderImageFile(ImageFile.ImageFile):
     def _open(self) -> None:
         # check header
         n = 27 * 4  # read 27 float values
+        assert self.fp is not None
         f = self.fp.read(n)
 
         try:
@@ -154,9 +158,7 @@ class SpiderImageFile(ImageFile.ImageFile):
             self.rawmode = "F;32F"
         self._mode = "F"
 
-        self.tile = [
-            ImageFile._Tile("raw", (0, 0) + self.size, offset, (self.rawmode, 0, 1))
-        ]
+        self.tile = [ImageFile._Tile("raw", (0, 0) + self.size, offset, self.rawmode)]
         self._fp = self.fp  # FIXME: hack
 
     @property
@@ -180,6 +182,8 @@ class SpiderImageFile(ImageFile.ImageFile):
             raise EOFError(msg)
         if not self._seek_check(frame):
             return
+        if isinstance(self._fp, DeferredError):
+            raise self._fp.ex
         self.stkoffset = self.hdrlen + frame * (self.hdrlen + self.imgbytes)
         self.fp = self._fp
         self.fp.seek(self.stkoffset)
@@ -211,26 +215,27 @@ class SpiderImageFile(ImageFile.ImageFile):
 
 
 # given a list of filenames, return a list of images
-def loadImageSeries(filelist: list[str] | None = None) -> list[SpiderImageFile] | None:
+def loadImageSeries(filelist: list[str] | None = None) -> list[Image.Image] | None:
     """create a list of :py:class:`~PIL.Image.Image` objects for use in a montage"""
     if filelist is None or len(filelist) < 1:
         return None
 
-    imglist = []
+    byte_imgs = []
     for img in filelist:
         if not os.path.exists(img):
             print(f"unable to find {img}")
             continue
         try:
             with Image.open(img) as im:
-                im = im.convert2byte()
+                assert isinstance(im, SpiderImageFile)
+                byte_im = im.convert2byte()
         except Exception:
             if not isSpiderImage(img):
                 print(f"{img} is not a Spider image file")
             continue
-        im.info["filename"] = img
-        imglist.append(im)
-    return imglist
+        byte_im.info["filename"] = img
+        byte_imgs.append(byte_im)
+    return byte_imgs
 
 
 # --------------------------------------------------------------------
@@ -239,7 +244,7 @@ def loadImageSeries(filelist: list[str] | None = None) -> list[SpiderImageFile] 
 
 def makeSpiderHeader(im: Image.Image) -> list[bytes]:
     nsam, nrow = im.size
-    lenbyt = nsam * 4  # There are labrec records in the header
+    lenbyt = max(1, nsam) * 4  # There are labrec records in the header
     labrec = int(1024 / lenbyt)
     if 1024 % lenbyt != 0:
         labrec += 1
@@ -268,7 +273,7 @@ def makeSpiderHeader(im: Image.Image) -> list[bytes]:
 
 
 def _save(im: Image.Image, fp: IO[bytes], filename: str | bytes) -> None:
-    if im.mode[0] != "F":
+    if im.mode != "F":
         im = im.convert("F")
 
     hdr = makeSpiderHeader(im)
@@ -280,16 +285,14 @@ def _save(im: Image.Image, fp: IO[bytes], filename: str | bytes) -> None:
     fp.writelines(hdr)
 
     rawmode = "F;32NF"  # 32-bit native floating point
-    ImageFile._save(
-        im, fp, [ImageFile._Tile("raw", (0, 0) + im.size, 0, (rawmode, 0, 1))]
-    )
+    ImageFile._save(im, fp, [ImageFile._Tile("raw", (0, 0) + im.size, 0, rawmode)])
 
 
 def _save_spider(im: Image.Image, fp: IO[bytes], filename: str | bytes) -> None:
     # get the filename extension and register it with Image
-    filename_ext = os.path.splitext(filename)[1]
-    ext = filename_ext.decode() if isinstance(filename_ext, bytes) else filename_ext
-    Image.register_extension(SpiderImageFile.format, ext)
+    if filename_ext := os.path.splitext(filename)[1]:
+        ext = filename_ext.decode() if isinstance(filename_ext, bytes) else filename_ext
+        Image.register_extension(SpiderImageFile.format, ext)
     _save(im, fp, filename)
 
 
@@ -321,9 +324,9 @@ if __name__ == "__main__":
             outfile = sys.argv[2]
 
             # perform some image operation
-            im = im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
+            transposed_im = im.transpose(Image.Transpose.FLIP_LEFT_RIGHT)
             print(
                 f"saving a flipped version of {os.path.basename(filename)} "
                 f"as {outfile} "
             )
-            im.save(outfile, SpiderImageFile.format)
+            transposed_im.save(outfile, SpiderImageFile.format)
