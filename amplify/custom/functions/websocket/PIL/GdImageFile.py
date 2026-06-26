@@ -25,6 +25,7 @@
     implementation is provided for convenience and demonstrational
     purposes only.
 """
+
 from __future__ import annotations
 
 from typing import IO
@@ -56,7 +57,7 @@ class GdImageFile(ImageFile.ImageFile):
             msg = "Not a valid GD 2.x .gd file"
             raise SyntaxError(msg)
 
-        self._mode = "L"  # FIXME: "P"
+        self._mode = "P"
         self._size = i16(s, 2), i16(s, 4)
 
         true_color = s[6]
@@ -68,15 +69,15 @@ class GdImageFile(ImageFile.ImageFile):
             self.info["transparency"] = tindex
 
         self.palette = ImagePalette.raw(
-            "XBGR", s[7 + true_color_offset + 4 : 7 + true_color_offset + 4 + 256 * 4]
+            "RGBX", s[7 + true_color_offset + 6 : 7 + true_color_offset + 6 + 256 * 4]
         )
 
         self.tile = [
             ImageFile._Tile(
                 "raw",
                 (0, 0) + self.size,
-                7 + true_color_offset + 4 + 256 * 4,
-                ("L", 0, 1),
+                7 + true_color_offset + 6 + 256 * 4,
+                "L",
             )
         ]
 

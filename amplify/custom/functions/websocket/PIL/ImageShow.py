@@ -143,25 +143,11 @@ class WindowsViewer(Viewer):
         """
         if not os.path.exists(path):
             raise FileNotFoundError
-        
-        # Parse the command into a list of arguments instead of using shell=True
-        if sys.platform == "win32":
-            # For Windows, use the appropriate commands directly
-            subprocess.Popen(
-                ["start", "Pillow", "/WAIT", path],
-                shell=False,
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0),
-                startupinfo=subprocess.STARTUPINFO() if hasattr(subprocess, "STARTUPINFO") else None
-            )
-            # Schedule file deletion after viewing
-            subprocess.Popen(
-                [sys.executable, "-c", f"import os, time; time.sleep(10); os.remove('{path}')"],
-                creationflags=getattr(subprocess, "CREATE_NO_WINDOW", 0)
-            )
-        else:
-            # For non-Windows platforms, parse the command into arguments
-            cmd_args = self.get_command(path, **options).split()
-            subprocess.Popen(cmd_args)
+        subprocess.Popen(
+            self.get_command(path, **options),
+            shell=True,
+            creationflags=getattr(subprocess, "CREATE_NO_WINDOW"),
+        )  # nosec
         return 1
 
 
@@ -189,7 +175,9 @@ class MacViewer(Viewer):
         if not os.path.exists(path):
             raise FileNotFoundError
         subprocess.call(["open", "-a", "Preview.app", path])
-        executable = sys.executable or shutil.which("python3")
+
+        pyinstaller = getattr(sys, "frozen", False) and hasattr(sys, "_MEIPASS")
+        executable = (not pyinstaller and sys.executable) or shutil.which("python3")
         if executable:
             subprocess.Popen(
                 [
@@ -206,7 +194,7 @@ if sys.platform == "darwin":
     register(MacViewer)
 
 
-class UnixViewer(Viewer):
+class UnixViewer(abc.ABC, Viewer):
     format = "PNG"
     options = {"compress_level": 1, "save_all": True}
 
